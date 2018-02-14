@@ -86,7 +86,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QGraphicsScene *scene;
-    //MyQGraphicsView *graphicsView;
 
     MazeRef myMaze = 0;
     int mazeHeight = 25;

@@ -18,6 +18,8 @@ To build under Debian GNU/Linux:
 
 sudo apt-get update
 sudo apt-get install build-essential qtcreator qt5-default
+git clone https://github.com/artcfox/maze-generator
+cd maze-generator
+qtcreator MazeGenerator.pro
 
-Next, using Qt Creator, open the MazeGenerator.pro file, set the build
-type to 'Release' and build it.
+Set the build type to 'Release' and build it.
