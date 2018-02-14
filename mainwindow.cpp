@@ -11,15 +11,14 @@
 #include "ui_mainwindow.h"
 #include "ui_about.h"
 
-#include <QtPrintSupport/QPrinter>
-#include <QtPrintSupport/QPrintDialog>
+#include <QPrinter>
+#include <QPrintDialog>
 #include <QDialog>
 #include <QFileDialog>
 #include <QInputDialog>
 
 #include <QLinearGradient>
 #include <QGraphicsRectItem>
-#include <QScrollBar>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
