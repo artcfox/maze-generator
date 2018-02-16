@@ -1,6 +1,6 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2018-02-11T21:08:47
+# Project created by QtCreator 2018-02-14T14:19:19
 #
 #-------------------------------------------------
 
@@ -26,12 +26,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    Maze.c
+    Maze.c \
+    mazewidget.cpp \
+    newdialog.cpp
 
 HEADERS  += mainwindow.h \
     Maze.h \
     DisjSets.h \
-    BitArray.h
+    BitArray.h \
+    mazewidget.h \
+    newdialog.h \
+    generatemazeworker.h \
+    deletemazeworker.h
 
 FORMS    += mainwindow.ui \
-    about.ui
+    about.ui \
+    newdialog.ui

@@ -1,15 +1,15 @@
 Maze Generator
 Copyright (C) 2009-2018 Matthew T. Pandina. All rights reserved.
 
-This is a Qt 5 front-end to a very portable (and memory efficient) C
-program I wrote to create and solve N-dimensional* mazes of any size.
+This is a multi-threaded Qt 5 front-end to a very portable (and memory
+efficient) C program I wrote to create and solve N-dimensional* mazes
+of any size.
 
 It uses a randomized Kruskal's algorithm to generate the mazes, and
 solves them using a dead-end filling algorithm.
 
-You can configure the size and look of the mazes, save them as image
-files, or print them out (or save them as PDF files) with or without
-their solutions.
+You can configure the size and look of each maze, export as a BMP
+file, print to paper, or a PDF file.
 
 *This GUI only allows 2D mazes to be visualized.
 

@@ -2,8 +2,7 @@
  *  Maze.c
  *  MazeInC
  *
- *  Created by Matthew T. Pandina on 11/25/09.
- *  Copyright 2009 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2009-2018 Matthew T. Pandina. All rights reserved.
  *
  */
 

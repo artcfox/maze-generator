@@ -2,7 +2,6 @@
  *  main.cpp
  *  MazeGenerator
  *
- *  Created by Matthew T Pandina on 2/11/18.
  *  Copyright 2018 Matthew T. Pandina. All rights reserved.
  *
  */
