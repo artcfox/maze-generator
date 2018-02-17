@@ -52,7 +52,10 @@ public:
     bool getRoundedPaths() const;
     void setRoundedPaths(bool value);
 
-    void paintOnto(QPainter *painter, QPaintEvent *event);
+    void paintBackground(QPainter *painter, const QRect &rect);
+    void paintMaze(QPainter *painter, const QRect &rect);
+    void paintSolution(QPainter *painter, const QRect &rect);
+
     void printMaze();
     void exportImage();
 

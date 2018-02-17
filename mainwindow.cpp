@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    scrollArea = new QScrollArea(this);
+    scrollArea = new DragScrollArea(this);
     setCentralWidget(scrollArea);
 
     mazeWidget = new MazeWidget(this);
@@ -114,6 +114,8 @@ void MainWindow::on_action_Solution_Width_triggered()
 void MainWindow::on_action_Reset_Distance_Widths_triggered()
 {
     mazeWidget->resetDefaultSpacing();
+    mazeWidget->setRoundedPaths(true);
+    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
 }
 
 void MainWindow::on_action_About_triggered()
@@ -182,4 +184,13 @@ void MainWindow::enableMenuItems(bool enabled)
     ui->action_New_Maze->setEnabled(enabled);
     ui->actionExport_Image->setEnabled(enabled);
     ui->action_Print->setEnabled(enabled);
+}
+
+void MainWindow::on_action_Classic_Maze_Style_triggered()
+{
+    mazeWidget->setSolutionThickness(2);
+    mazeWidget->setHallThickness(6);
+    mazeWidget->setGridSpacing(7);
+    mazeWidget->setRoundedPaths(false);
+    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
 }

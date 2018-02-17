@@ -28,7 +28,8 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     Maze.c \
     mazewidget.cpp \
-    newdialog.cpp
+    newdialog.cpp \
+    dragscrollarea.cpp
 
 HEADERS  += mainwindow.h \
     Maze.h \
@@ -37,7 +38,8 @@ HEADERS  += mainwindow.h \
     mazewidget.h \
     newdialog.h \
     generatemazeworker.h \
-    deletemazeworker.h
+    deletemazeworker.h \
+    dragscrollarea.h
 
 FORMS    += mainwindow.ui \
     about.ui \

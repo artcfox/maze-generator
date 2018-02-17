@@ -77,165 +77,185 @@ void MazeWidget::resetWidgetSize()
     setMaximumHeight((mazeHeight + 1) * gridSpacing);
 }
 
-
-void MazeWidget::paintOnto(QPainter *painter, QPaintEvent *event)
+void MazeWidget::paintBackground(QPainter *painter, const QRect &rect)
 {
-    if (creatingMaze) {
-        QBrush brush(Qt::gray);
+    QBrush whiteBrush(Qt::white);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(whiteBrush);
+    QRect backgroundRect(0, 0, (mazeWidth + 1) * gridSpacing, (mazeHeight + 1) * gridSpacing);
+    painter->drawRect(backgroundRect.intersected(rect));
+
+    if (showMaze) {
+        QBrush blackBrush(Qt::black);
         painter->setPen(Qt::NoPen);
-        painter->setBrush(brush);
-        painter->drawRect(event->rect());
-        return;
+        painter->setBrush(blackBrush);
+        QRect mazeWalls((hallThickness + 1) / 2, (hallThickness + 1) / 2, ((mazeWidth + 1) * gridSpacing) - hallThickness, ((mazeHeight + 1) * gridSpacing) - hallThickness);
+        painter->drawRect(mazeWalls.intersected(rect));
     }
+}
+
+void MazeWidget::paintMaze(QPainter *painter, const QRect &rect)
+{
+    if (creatingMaze) // make safe for something external to call
+        return;
 
     QPainterPath mazePath;
-    QPainterPath solutionPath;
 
-    QBrush blackBrush(Qt::black);
-    QBrush whiteBrush(Qt::white);
+    // Convert from view coordinates into maze coordinates
+    int startX = ((rect.left()) / gridSpacing) - 1 - 1;
+    if (startX < 0)
+        startX = 0;
+
+    int startY = ((rect.top()) / gridSpacing) - 1 - 1;
+    if (startY < 0)
+        startY = 0;
+
+    int endX = (((rect.right())) / gridSpacing) + 1;
+    if (endX > mazeWidth)
+        endX = mazeWidth;
+
+    int endY = (((rect.bottom())) / gridSpacing) + 1;
+    if (endY > mazeHeight)
+        endY = mazeHeight;
+
+    // Draw entrance and exit
+    mazePath.moveTo(((1) * gridSpacing), ((0) * gridSpacing));
+    mazePath.lineTo(((1) * gridSpacing), ((1) * gridSpacing));
+    mazePath.moveTo(((mazeWidth) * gridSpacing), ((mazeHeight) * gridSpacing));
+    mazePath.lineTo(((mazeWidth) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
+
+    // Draw horizontal paths in the maze
+    BitArrayRef connected = myMaze->halls[0];
+    for (int y = startY; y < endY; ++y) {
+        for (int x = startX; x < endX; ++x) {
+            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                int offset = 0;
+                while (x + 1 < endX) { // see if we can extend this line more
+                    position++; // move to the right one square
+                    if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                mazePath.lineTo(((x + (offset + 1) + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                x += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
+
+    // Draw vertical paths in the maze
+    connected = myMaze->halls[1];
+    for (int x = startX; x < endX; ++x) {
+        for (int y = startY; y < endY; ++y) {
+            int position = y * mazeWidth + x;
+            if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                int offset = 0;
+                while (y + 1 < endY) { // see if we can extend this line more
+                    position += mazeWidth; // move down one square
+                    if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                mazePath.lineTo(((x + 1) * gridSpacing), ((y + (offset + 1) + 1) * gridSpacing));
+                y += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
 
     QPen hallPen(Qt::white);
     hallPen.setWidth(hallThickness);
-
-    QPen solutionPen(Qt::red);
-    solutionPen.setWidth(solutionThickness);
-
-    if (roundedPaths) {
+    if (roundedPaths)
         hallPen.setCapStyle(Qt::RoundCap);
-        solutionPen.setCapStyle(Qt::RoundCap);
-    } else {
+    else
         hallPen.setCapStyle(Qt::SquareCap);
-        solutionPen.setCapStyle(Qt::SquareCap);
-    }
-
-    // Convert from view coordinates into maze coordinates
-    int cell1[2], cell2[2];
-    cell1[0] = ((event->rect().left()) / gridSpacing) - 1 - 1;
-    if (cell1[0] < 0)
-        cell1[0] = 0;
-
-    cell1[1] = ((event->rect().top()) / gridSpacing) - 1 - 1;
-    if (cell1[1] < 0)
-        cell1[1] = 0;
-
-    cell2[0] = (((event->rect().right())) / gridSpacing) + 1;
-    if (cell2[0] > myMaze->dims[0])
-        cell2[0] = myMaze->dims[0];
-
-    cell2[1] = (((event->rect().bottom())) / gridSpacing) + 1;
-    if (cell2[1] > myMaze->dims[1])
-        cell2[1] = myMaze->dims[1];
-
-    if (showMaze) {
-        painter->setPen(hallPen);
-        painter->setBrush(blackBrush);
-        painter->drawRect(0, 0, ((myMaze->dims[0] + 1) * gridSpacing), ((myMaze->dims[1] + 1) * gridSpacing));
-
-        // Draw entrance and exit
-        mazePath.moveTo(((1) * gridSpacing), ((0) * gridSpacing));
-        mazePath.lineTo(((1) * gridSpacing), ((1) * gridSpacing));
-        mazePath.moveTo(((myMaze->dims[0]) * gridSpacing), ((myMaze->dims[1]) * gridSpacing));
-        mazePath.lineTo(((myMaze->dims[0]) * gridSpacing), ((myMaze->dims[1] + 1) * gridSpacing));
-
-        // Draw horizontal paths in the maze
-        BitArrayRef connected = myMaze->halls[0];
-        for (int y = cell1[1]; y < cell2[1]; ++y) {
-            for (int x = cell1[0]; x < cell2[0]; ++x) {
-                int position = y * myMaze->dims[0] + x; // convert (x, y) coordinates into a scalar position
-                if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
-                    mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    int offset = 0;
-                    while (x + 1 < cell2[0]) { // see if we can extend this line more
-                        position++; // move to the right one square
-                        if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
-                            offset++; // extend the endpoint of the line
-                        else
-                            break; // there is a wall, the line needs to end
-                    }
-                    mazePath.lineTo(((x + (offset + 1) + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    x += offset; // if we were able to extend the line, adjust the index variable
-                }
-            }
-        }
-
-        // Draw vertical paths in the maze
-        connected = myMaze->halls[1];
-        for (int x = cell1[0]; x < cell2[0]; ++x) {
-            for (int y = cell1[1]; y < cell2[1]; ++y) {
-                int position = y * myMaze->dims[0] + x;
-                if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
-                    mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    int offset = 0;
-                    while (y + 1 < cell2[1]) { // see if we can extend this line more
-                        position += myMaze->dims[0]; // move down one square
-                        if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
-                            offset++; // extend the endpoint of the line
-                        else
-                            break; // there is a wall, the line needs to end
-                    }
-                    mazePath.lineTo(((x + 1) * gridSpacing), ((y + (offset + 1) + 1) * gridSpacing));
-                    y += offset; // if we were able to extend the line, adjust the index variable
-                }
-            }
-        }
-    } else {
-        painter->setPen(hallPen);
-        painter->setBrush(whiteBrush);
-        painter->drawRect(0, 0, ((myMaze->dims[0] + 1) * gridSpacing), ((myMaze->dims[1] + 1) * gridSpacing));
-    }
-
-    if (showSolution) {
-        // Draw solution above entrance and exit
-        solutionPath.moveTo(((1) * gridSpacing), ((0) * gridSpacing));
-        solutionPath.lineTo(((1) * gridSpacing), ((1) * gridSpacing));
-        solutionPath.moveTo(((myMaze->dims[0]) * gridSpacing), ((myMaze->dims[1]) * gridSpacing));
-        solutionPath.lineTo(((myMaze->dims[0]) * gridSpacing), ((myMaze->dims[1] + 1) * gridSpacing));
-
-        // Draw horizontal paths in the solution
-        BitArrayRef connected = myMaze->solution[0];
-        for (int y = cell1[1]; y < cell2[1]; ++y) {
-            for (int x = cell1[0]; x < cell2[0]; ++x) {
-                int position = y * myMaze->dims[0] + x; // convert (x, y) coordinates into a scalar position
-                if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
-                    solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    int offset = 0;
-                    while (x + 1 < cell2[0]) { // see if we can extend this line more
-                        position++; // move to the right one square
-                        if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
-                            offset++; // extend the endpoint of the line
-                        else
-                            break; // there is a wall, the line needs to end
-                    }
-                    solutionPath.lineTo(((x + (offset + 1) + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    x += offset; // if we were able to extend the line, adjust the index variable
-                }
-            }
-        }
-
-        // Draw vertical paths in the solution
-        connected = myMaze->solution[1];
-        for (int x = cell1[0]; x < cell2[0]; ++x) {
-            for (int y = cell1[1]; y < cell2[1]; ++y) {
-                int position = y * myMaze->dims[0] + x;
-                if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
-                    solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
-                    int offset = 0;
-                    while (y + 1 < cell2[1]) { // see if we can extend this line more
-                        position += myMaze->dims[0]; // move down one square
-                        if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
-                            offset++; // extend the endpoint of the line
-                        else
-                            break; // there is a wall, the line needs to end
-                    }
-                    solutionPath.lineTo(((x + 1) * gridSpacing), ((y + (offset + 1) + 1) * gridSpacing));
-                    y += offset; // if we were able to extend the line, adjust the index variable
-                }
-            }
-        }
-    }
 
     painter->setPen(hallPen);
     painter->drawPath(mazePath);
+}
+
+void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
+{
+    if (creatingMaze) // make safe for something external to call
+        return;
+
+    QPainterPath solutionPath;
+
+    // Convert from view coordinates into maze coordinates
+    int startX = ((rect.left()) / gridSpacing) - 1 - 1;
+    if (startX < 0)
+        startX = 0;
+
+    int startY = ((rect.top()) / gridSpacing) - 1 - 1;
+    if (startY < 0)
+        startY = 0;
+
+    int endX = (((rect.right())) / gridSpacing) + 1;
+    if (endX > mazeWidth)
+        endX = mazeWidth;
+
+    int endY = (((rect.bottom())) / gridSpacing) + 1;
+    if (endY > mazeHeight)
+        endY = mazeHeight;
+
+    // Draw solution above entrance and exit
+    solutionPath.moveTo(((1) * gridSpacing), ((0) * gridSpacing));
+    solutionPath.lineTo(((1) * gridSpacing), ((1) * gridSpacing));
+    solutionPath.moveTo(((mazeWidth) * gridSpacing), ((mazeHeight) * gridSpacing));
+    solutionPath.lineTo(((mazeWidth) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
+
+    // Draw horizontal paths in the solution
+    BitArrayRef connected = myMaze->solution[0];
+    for (int y = startY; y < endY; ++y) {
+        for (int x = startX; x < endX; ++x) {
+            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                int offset = 0;
+                while (x + 1 < endX) { // see if we can extend this line more
+                    position++; // move to the right one square
+                    if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                solutionPath.lineTo(((x + (offset + 1) + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                x += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
+
+    // Draw vertical paths in the solution
+    connected = myMaze->solution[1];
+    for (int x = startX; x < endX; ++x) {
+        for (int y = startY; y < endY; ++y) {
+            int position = y * mazeWidth + x;
+            if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
+                int offset = 0;
+                while (y + 1 < endY) { // see if we can extend this line more
+                    position += mazeWidth; // move down one square
+                    if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                solutionPath.lineTo(((x + 1) * gridSpacing), ((y + (offset + 1) + 1) * gridSpacing));
+                y += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
+
+    QPen solutionPen(Qt::red);
+    solutionPen.setWidth(solutionThickness);
+    if (roundedPaths)
+        solutionPen.setCapStyle(Qt::RoundCap);
+    else
+        solutionPen.setCapStyle(Qt::SquareCap);
+
     painter->setPen(solutionPen);
     painter->drawPath(solutionPath);
 }
@@ -246,9 +266,22 @@ void MazeWidget::printMaze()
     if (QPrintDialog(&printer).exec() == QDialog::Accepted) {
         QPainter painter;
         painter.begin(&printer);
+
         //painter.setRenderHint(QPainter::Antialiasing);
-        QPaintEvent event(QRect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing)));
-        paintOnto(&painter, &event);
+        QRect rect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
+
+        if (creatingMaze) {
+            QBrush brush(Qt::white);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(brush);
+            painter.drawRect(rect);
+        } else {
+            paintBackground(&painter, rect);
+            if (showMaze)
+                paintMaze(&painter, rect);
+            if (showSolution)
+                paintSolution(&painter, rect);
+        }
         painter.end();
     }
 }
@@ -270,8 +303,21 @@ void MazeWidget::exportImage()
         }
 
         //painter.setRenderHints(QPainter::Antialiasing);
-        QPaintEvent event(QRect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing)));
-        paintOnto(&painter, &event);
+        QRect rect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
+
+        if (creatingMaze) {
+            QBrush brush(Qt::gray);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(brush);
+            painter.drawRect(rect);
+        } else {
+            paintBackground(&painter, rect);
+            if (showMaze)
+                paintMaze(&painter, rect);
+            if (showSolution)
+                paintSolution(&painter, rect);
+        }
+
         painter.end();
         image.save(fileName);
     }
@@ -281,8 +327,30 @@ void MazeWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter;
     painter.begin(this);
+
     //painter.setRenderHint(QPainter::Antialiasing);
-    paintOnto(&painter, event);
+
+    if (creatingMaze) {
+        QBrush brush(Qt::gray);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(brush);
+        painter.drawRect(event->rect());
+    } else {
+        QVectorIterator<QRect> i(event->region().rects());
+        while (i.hasNext())
+            paintBackground(&painter, i.next());
+        if (showMaze) {
+            i.toFront();
+            while (i.hasNext())
+                paintMaze(&painter, i.next());
+        }
+        if (showSolution) {
+            i.toFront();
+            while (i.hasNext())
+                paintSolution(&painter, i.next());
+        }
+    }
+
     painter.end();
 }
 

@@ -10,7 +10,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QScrollArea>
+#include "dragscrollarea.h"
 #include <QScrollBar>
 #include <QLabel>
 
@@ -63,9 +63,11 @@ private slots:
 
     void on_actionExport_Image_triggered();
 
+    void on_action_Classic_Maze_Style_triggered();
+
 private:
     Ui::MainWindow *ui;
-    QScrollArea *scrollArea;
+    DragScrollArea *scrollArea;
     MazeWidget *mazeWidget;
     QLabel permanentStatus;
     bool showStatusBar = true;

@@ -36,6 +36,7 @@
      <addaction name="action_Solution_Width"/>
      <addaction name="separator"/>
      <addaction name="action_Reset_Distance_Widths"/>
+     <addaction name="action_Classic_Maze_Style"/>
     </widget>
     <addaction name="actionShow_Solution"/>
     <addaction name="actionShow_Maze"/>
@@ -131,7 +132,10 @@
   </action>
   <action name="action_Reset_Distance_Widths">
    <property name="text">
-    <string>&amp;Reset Distance &amp;&amp; Widths</string>
+    <string>D&amp;efault Maze Style</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
   <action name="action_About">
@@ -161,6 +165,14 @@
   <action name="actionExport_Image">
    <property name="text">
     <string>Export &amp;Image...</string>
+   </property>
+  </action>
+  <action name="action_Classic_Maze_Style">
+   <property name="text">
+    <string>&amp;Classic Maze Style</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+C</string>
    </property>
   </action>
  </widget>
