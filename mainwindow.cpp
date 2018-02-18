@@ -12,7 +12,6 @@
 #include "ui_about.h"
 
 #include <QInputDialog>
-#include <QTimer>
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -32,9 +31,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionShow_Solution->setChecked(mazeWidget->getShowSolution());
     ui->actionShow_Maze->setChecked(mazeWidget->getShowMaze());
     ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
     ui->actionStatus_bar->setChecked(showStatusBar);
 
     ui->statusBar->addPermanentWidget(&permanentStatus, 0);
+
+    singleShot.setSingleShot(true);
+    singleShot.setInterval(3000);
+    connect(&singleShot, SIGNAL(timeout()), this, SLOT(hide_mazeCreated()));
 
     connect(mazeWidget, SIGNAL(on_deletingOldMaze()), this, SLOT(on_deletingOldMaze()));
     connect(mazeWidget, SIGNAL(on_allocatingMemory()), this, SLOT(on_allocatingMemory()));
@@ -77,6 +81,7 @@ void MainWindow::on_action_New_Maze_triggered()
         mazeWidget->generateMaze();
         enableMenuItems(false);
         QApplication::setOverrideCursor(Qt::BusyCursor);
+        singleShot.stop();
     }
 
     delete newDialog;
@@ -152,7 +157,7 @@ void MainWindow::on_mazeCreated()
     QApplication::restoreOverrideCursor();
     enableMenuItems(true);
     permanentStatus.setText("Maze Solved!");
-    QTimer::singleShot(3000, this, SLOT(hide_mazeCreated()));
+    singleShot.start(3000);
 }
 
 void MainWindow::hide_mazeCreated()
@@ -193,4 +198,46 @@ void MainWindow::on_action_Classic_Maze_Style_triggered()
     mazeWidget->setGridSpacing(7);
     mazeWidget->setRoundedPaths(false);
     ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
+}
+
+void MainWindow::on_actionZoom_In_triggered()
+{
+    // Ensure widget doesn't exceed maximum size
+    if ((mazeWidget->width() * 2.0 > QWIDGETSIZE_MAX) || (mazeWidget->height() * 2.0 > QWIDGETSIZE_MAX))
+        return;
+
+    int hScroll = scrollArea->horizontalScrollBar()->value();
+    int vScroll = scrollArea->verticalScrollBar()->value();
+    mazeWidget->setScaling(mazeWidget->getScaling() * 2.0);
+    scrollArea->horizontalScrollBar()->setValue(hScroll * 2.0);
+    scrollArea->verticalScrollBar()->setValue(vScroll * 2.0);
+}
+
+void MainWindow::on_actionZoom_Out_triggered()
+{
+    // Ensure widget doesn't get smaller than a pixel
+    if ((mazeWidget->width() / 2.0 < 1) || (mazeWidget->height() / 2.0 < 1))
+        return;
+
+    int hScroll = scrollArea->horizontalScrollBar()->value();
+    int vScroll = scrollArea->verticalScrollBar()->value();
+    mazeWidget->setScaling(mazeWidget->getScaling() / 2.0);
+    scrollArea->horizontalScrollBar()->setValue(hScroll / 2.0);
+    scrollArea->verticalScrollBar()->setValue(vScroll / 2.0);
+}
+
+void MainWindow::on_actionZoom_Normal_triggered()
+{
+    int hScroll = scrollArea->horizontalScrollBar()->value();
+    int vScroll = scrollArea->verticalScrollBar()->value();
+    qreal scaling = mazeWidget->getScaling();
+    mazeWidget->setScaling(1.0);
+    scrollArea->horizontalScrollBar()->setValue(hScroll / scaling);
+    scrollArea->verticalScrollBar()->setValue(vScroll / scaling);
+}
+
+void MainWindow::on_actionAn_tialiased_triggered()
+{
+    mazeWidget->setAntialiased(!mazeWidget->getAntialiased());
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
 }

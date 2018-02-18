@@ -13,7 +13,7 @@
 #include "dragscrollarea.h"
 #include <QScrollBar>
 #include <QLabel>
-
+#include <QTimer>
 #include "mazewidget.h"
 
 namespace Ui {
@@ -65,11 +65,20 @@ private slots:
 
     void on_action_Classic_Maze_Style_triggered();
 
+    void on_actionZoom_In_triggered();
+
+    void on_actionZoom_Out_triggered();
+
+    void on_actionZoom_Normal_triggered();
+
+    void on_actionAn_tialiased_triggered();
+
 private:
     Ui::MainWindow *ui;
     DragScrollArea *scrollArea;
     MazeWidget *mazeWidget;
     QLabel permanentStatus;
+    QTimer singleShot;
     bool showStatusBar = true;
     void enableMenuItems(bool enabled);
 };

@@ -11,6 +11,7 @@
 
 #include <QWidget>
 #include <QThread>
+#include <QRect>
 #include "Maze.h"
 
 #define DEFAULT_GRID_SPACING 24
@@ -59,6 +60,12 @@ public:
     void printMaze();
     void exportImage();
 
+    qreal getScaling() const;
+    void setScaling(const qreal &value);
+
+    bool getAntialiased() const;
+    void setAntialiased(bool value);
+
 signals:
     void operate();
     void on_deletingOldMaze();
@@ -98,6 +105,10 @@ private:
     bool showSolution = true;
     bool showMaze = true;
     bool roundedPaths = true;
+    bool antialiased = false;
+
+    qreal scaling = 1.0;
+    QRect scaleRect(const QRect &rect);
 };
 
 #endif // MAZEWIDGET_H

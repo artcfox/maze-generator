@@ -71,10 +71,41 @@ void MazeWidget::generateMaze()
 
 void MazeWidget::resetWidgetSize()
 {
-    setMinimumWidth((mazeWidth + 1) * gridSpacing);
-    setMaximumWidth((mazeWidth + 1) * gridSpacing);
-    setMinimumHeight((mazeHeight + 1) * gridSpacing);
-    setMaximumHeight((mazeHeight + 1) * gridSpacing);
+    setMinimumWidth((mazeWidth + 1) * gridSpacing * scaling);
+    setMaximumWidth((mazeWidth + 1) * gridSpacing * scaling);
+    setMinimumHeight((mazeHeight + 1) * gridSpacing * scaling);
+    setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
+}
+
+bool MazeWidget::getAntialiased() const
+{
+    return antialiased;
+}
+
+void MazeWidget::setAntialiased(bool value)
+{
+    antialiased = value;
+    update();
+}
+
+QRect MazeWidget::scaleRect(const QRect &rect)
+{
+    if (scaling >= 1.0)
+        return QRect(rect.left() / scaling, rect.top() / scaling, rect.width() * scaling, rect.height() * scaling);
+    else
+        return QRect(rect.left() / scaling, rect.top() / scaling, rect.width() / scaling, rect.height() / scaling);
+}
+
+qreal MazeWidget::getScaling() const
+{
+    return scaling;
+}
+
+void MazeWidget::setScaling(const qreal &value)
+{
+    scaling = value;
+    resetWidgetSize();
+    update();
 }
 
 void MazeWidget::paintBackground(QPainter *painter, const QRect &rect)
@@ -267,20 +298,23 @@ void MazeWidget::printMaze()
         QPainter painter;
         painter.begin(&printer);
 
-        //painter.setRenderHint(QPainter::Antialiasing);
+        painter.scale(scaling, scaling);
+        if (antialiased)
+            painter.setRenderHint(QPainter::Antialiasing);
+
         QRect rect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
 
         if (creatingMaze) {
             QBrush brush(Qt::white);
             painter.setPen(Qt::NoPen);
             painter.setBrush(brush);
-            painter.drawRect(rect);
+            painter.drawRect(scaleRect(rect));
         } else {
-            paintBackground(&painter, rect);
+            paintBackground(&painter, scaleRect(rect));
             if (showMaze)
-                paintMaze(&painter, rect);
+                paintMaze(&painter, scaleRect(rect));
             if (showSolution)
-                paintSolution(&painter, rect);
+                paintSolution(&painter, scaleRect(rect));
         }
         painter.end();
     }
@@ -295,27 +329,30 @@ void MazeWidget::exportImage()
         if (fileInfo.suffix().isEmpty())
             fileName.append(".bmp");
 
-        QImage image(((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing), QImage::Format_ARGB32_Premultiplied);
+        QImage image(((mazeWidth + 1) * gridSpacing) * scaling, ((mazeHeight + 1) * gridSpacing) * scaling, QImage::Format_ARGB32_Premultiplied);
         QPainter painter;
         if (!painter.begin(&image)) {
             QMessageBox::warning(this, "Error Exporting Image", "There was an error exporting the image; the maze is most likely too large.\n\nYou may configure its rendered size using the View > Advanced menu, or create a new maze with smaller dimensions.");
             return;
         }
 
-        //painter.setRenderHints(QPainter::Antialiasing);
+        painter.scale(scaling, scaling);
+        if (antialiased)
+            painter.setRenderHint(QPainter::Antialiasing);
+
         QRect rect(0, 0, ((mazeWidth + 1) * gridSpacing), ((mazeHeight + 1) * gridSpacing));
 
         if (creatingMaze) {
             QBrush brush(Qt::gray);
             painter.setPen(Qt::NoPen);
             painter.setBrush(brush);
-            painter.drawRect(rect);
+            painter.drawRect(scaleRect(rect));
         } else {
-            paintBackground(&painter, rect);
+            paintBackground(&painter, scaleRect(rect));
             if (showMaze)
-                paintMaze(&painter, rect);
+                paintMaze(&painter, scaleRect(rect));
             if (showSolution)
-                paintSolution(&painter, rect);
+                paintSolution(&painter, scaleRect(rect));
         }
 
         painter.end();
@@ -328,26 +365,28 @@ void MazeWidget::paintEvent(QPaintEvent *event)
     QPainter painter;
     painter.begin(this);
 
-    //painter.setRenderHint(QPainter::Antialiasing);
+    painter.scale(scaling, scaling);
+    if (antialiased)
+        painter.setRenderHint(QPainter::Antialiasing);
 
     if (creatingMaze) {
         QBrush brush(Qt::gray);
         painter.setPen(Qt::NoPen);
         painter.setBrush(brush);
-        painter.drawRect(event->rect());
+        painter.drawRect(scaleRect(event->rect()));
     } else {
         QVectorIterator<QRect> i(event->region().rects());
         while (i.hasNext())
-            paintBackground(&painter, i.next());
+            paintBackground(&painter, scaleRect(i.next()));
         if (showMaze) {
             i.toFront();
             while (i.hasNext())
-                paintMaze(&painter, i.next());
+                paintMaze(&painter, scaleRect(i.next()));
         }
         if (showSolution) {
             i.toFront();
             while (i.hasNext())
-                paintSolution(&painter, i.next());
+                paintSolution(&painter, scaleRect(i.next()));
         }
     }
 
