@@ -294,11 +294,17 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
 void MazeWidget::printMaze()
 {
     QPrinter printer;
+    printer.setResolution(600);
+    printer.setPageMargins(QMarginsF(0.25, 0.25, 0.25, 0.25), QPageLayout::Inch);
+    printer.setPageSize(QPageSize(QPageSize::Letter));
+
     if (QPrintDialog(&printer).exec() == QDialog::Accepted) {
         QPainter painter;
         painter.begin(&printer);
 
-        painter.scale(scaling, scaling);
+        qreal scaleToFit = qMin((qreal)painter.viewport().width() / width(), (qreal)painter.viewport().height() / height());
+        painter.scale(scaleToFit * scaling, scaleToFit * scaling);
+
         if (antialiased)
             painter.setRenderHint(QPainter::Antialiasing);
 
