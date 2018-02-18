@@ -33,19 +33,19 @@ private slots:
 
     void on_actionShow_Maze_triggered();
 
-    void on_action_Rounded_Paths_triggered();
+    void on_action_Round_Caps_triggered();
 
     void on_action_New_Maze_triggered();
 
     void on_actionE_xit_triggered();
 
-    void on_action_Distance_Between_Paths_triggered();
+    void on_action_Distance_Between_Walls_triggered();
 
-    void on_action_Path_Width_triggered();
+    void on_action_Wall_Thickness_triggered();
 
-    void on_action_Solution_Width_triggered();
+    void on_action_Solution_Thickness_triggered();
 
-    void on_action_Reset_Distance_Widths_triggered();
+    void on_action_Default_Maze_Style_triggered();
 
     void on_action_About_triggered();
 
@@ -72,6 +72,10 @@ private slots:
     void on_actionZoom_Normal_triggered();
 
     void on_actionAn_tialiased_triggered();
+
+    void on_action_Tiny_Maze_Style_triggered();
+
+    void on_actionIn_verse_triggered();
 
 private:
     Ui::MainWindow *ui;

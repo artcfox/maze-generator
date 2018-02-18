@@ -15,7 +15,7 @@
 #include "Maze.h"
 
 #define DEFAULT_GRID_SPACING 24
-#define DEFAULT_HALL_THICKNESS 16
+#define DEFAULT_WALL_THICKNESS 8
 #define DEFAULT_SOLUTION_THICKNESS 8
 
 class MazeWidget : public QWidget
@@ -36,8 +36,8 @@ public:
     int getGridSpacing() const;
     void setGridSpacing(int value);
 
-    int getHallThickness() const;
-    void setHallThickness(int value);
+    int getWallThickness() const;
+    void setWallThickness(int value);
 
     int getSolutionThickness() const;
     void setSolutionThickness(int value);
@@ -50,11 +50,11 @@ public:
     bool getShowMaze() const;
     void setShowMaze(bool value);
 
-    bool getRoundedPaths() const;
-    void setRoundedPaths(bool value);
+    bool getRoundCaps() const;
+    void setRoundCaps(bool value);
 
     void paintBackground(QPainter *painter, const QRect &rect);
-    void paintMaze(QPainter *painter, const QRect &rect);
+    void paintMazePaths(QPainter *painter, const QRect &rect);
     void paintSolution(QPainter *painter, const QRect &rect);
 
     void printMaze();
@@ -65,6 +65,11 @@ public:
 
     bool getAntialiased() const;
     void setAntialiased(bool value);
+
+    void paintMazeWalls(QPainter *painter, const QRect &rect);
+    void paintPathBackground(QPainter *painter, const QRect &rect);
+    bool getInverse() const;
+    void setInverse(bool value);
 
 signals:
     void operate();
@@ -99,13 +104,14 @@ private:
     int mazeHeight = 25;
 
     int gridSpacing = DEFAULT_GRID_SPACING;
-    int hallThickness = DEFAULT_HALL_THICKNESS;
+    int wallThickness = DEFAULT_WALL_THICKNESS;
     int solutionThickness = DEFAULT_SOLUTION_THICKNESS;
 
     bool showSolution = true;
     bool showMaze = true;
-    bool roundedPaths = true;
+    bool roundCaps = true;
     bool antialiased = false;
+    bool inverse = false;
 
     qreal scaling = 1.0;
     QRect scaleRect(const QRect &rect);

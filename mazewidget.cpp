@@ -77,6 +77,17 @@ void MazeWidget::resetWidgetSize()
     setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
 }
 
+bool MazeWidget::getInverse() const
+{
+    return inverse;
+}
+
+void MazeWidget::setInverse(bool value)
+{
+    inverse = value;
+    update();
+}
+
 bool MazeWidget::getAntialiased() const
 {
     return antialiased;
@@ -120,12 +131,21 @@ void MazeWidget::paintBackground(QPainter *painter, const QRect &rect)
         QBrush blackBrush(Qt::black);
         painter->setPen(Qt::NoPen);
         painter->setBrush(blackBrush);
-        QRect mazeWalls((hallThickness + 1) / 2, (hallThickness + 1) / 2, ((mazeWidth + 1) * gridSpacing) - hallThickness, ((mazeHeight + 1) * gridSpacing) - hallThickness);
+        QRect mazeWalls((wallThickness + 1) / 2, (wallThickness + 1) / 2, ((mazeWidth + 1) * gridSpacing) - wallThickness, ((mazeHeight + 1) * gridSpacing) - wallThickness);
         painter->drawRect(mazeWalls.intersected(rect));
     }
 }
 
-void MazeWidget::paintMaze(QPainter *painter, const QRect &rect)
+void MazeWidget::paintPathBackground(QPainter *painter, const QRect &rect)
+{
+    QBrush whiteBrush(Qt::white);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(whiteBrush);
+    //QRect backgroundRect(0, 0, (mazeWidth + 1) * gridSpacing, (mazeHeight + 1) * gridSpacing);
+    painter->drawRect(/*backgroundRect.intersected(*/rect/*)*/);
+}
+
+void MazeWidget::paintMazePaths(QPainter *painter, const QRect &rect)
 {
     if (creatingMaze) // make safe for something external to call
         return;
@@ -163,7 +183,7 @@ void MazeWidget::paintMaze(QPainter *painter, const QRect &rect)
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
-                while (x + 1 < endX) { // see if we can extend this line more
+                while (x + offset + 1 < endX) { // see if we can extend this line more
                     position++; // move to the right one square
                     if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
                         offset++; // extend the endpoint of the line
@@ -184,7 +204,7 @@ void MazeWidget::paintMaze(QPainter *painter, const QRect &rect)
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
-                while (y + 1 < endY) { // see if we can extend this line more
+                while (y + offset + 1 < endY) { // see if we can extend this line more
                     position += mazeWidth; // move down one square
                     if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
                         offset++; // extend the endpoint of the line
@@ -197,12 +217,103 @@ void MazeWidget::paintMaze(QPainter *painter, const QRect &rect)
         }
     }
 
-    QPen hallPen(Qt::white);
-    hallPen.setWidth(hallThickness);
-    if (roundedPaths)
+    QPen hallPen(Qt::black);
+    hallPen.setWidth(wallThickness);
+    if (roundCaps) {
         hallPen.setCapStyle(Qt::RoundCap);
-    else
+        hallPen.setJoinStyle(Qt::RoundJoin);
+    } else {
         hallPen.setCapStyle(Qt::SquareCap);
+        hallPen.setJoinStyle((Qt::MiterJoin));
+    }
+
+    painter->setPen(hallPen);
+    painter->drawPath(mazePath);
+}
+
+void MazeWidget::paintMazeWalls(QPainter *painter, const QRect &rect)
+{
+    if (creatingMaze) // make safe for something external to call
+        return;
+
+    QPainterPath mazePath;
+
+    // Convert from view coordinates into maze coordinates
+    int startX = ((rect.left()) / gridSpacing) - 1 - 1;
+    if (startX < 0)
+        startX = 0;
+
+    int startY = ((rect.top()) / gridSpacing) - 1 - 1;
+    if (startY < 0)
+        startY = 0;
+
+    int endX = (((rect.right())) / gridSpacing) + 1;
+    if (endX > mazeWidth)
+        endX = mazeWidth;
+
+    int endY = (((rect.bottom())) / gridSpacing) + 1;
+    if (endY > mazeHeight)
+        endY = mazeHeight;
+
+    // Draw the border around the maze
+    mazePath.moveTo(0.5 * gridSpacing, 0.5 * gridSpacing);
+    mazePath.lineTo(0.5 * gridSpacing, (mazeHeight + 0.5) * gridSpacing);
+    mazePath.lineTo((mazeWidth - 1 + 0.5) * gridSpacing, (mazeHeight + 0.5) * gridSpacing);
+    mazePath.moveTo((mazeWidth + 0.5) * gridSpacing, (mazeHeight + 0.5) * gridSpacing);
+    mazePath.lineTo((mazeWidth + 0.5) * gridSpacing, 0.5 * gridSpacing);
+    mazePath.lineTo((1 + 0.5) * gridSpacing, 0.5 * gridSpacing);
+
+    // Draw vertical walls in the maze
+    BitArrayRef connected = myMaze->halls[0];
+    for (int x = startX; x < endX - 1; ++x) {
+        for (int y = startY; y < endY; ++y) {
+            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            if (!BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                mazePath.moveTo(((x + 1.5) * gridSpacing), ((y + 0.5) * gridSpacing));
+                int offset = 0;
+                while (y + offset + 1 < endY) { // see if we can extend this line more
+                    position += mazeWidth; // move down one square
+                    if (!BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                mazePath.lineTo(((x + 1.5) * gridSpacing), ((y + (offset + 1.5)) * gridSpacing));
+                y += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
+
+    // Draw horizontal walls in the maze
+    connected = myMaze->halls[1];
+    for (int y = startY; y < endY - 1; ++y) {
+        for (int x = startX; x < endX; ++x) {
+            int position = y * mazeWidth + x;
+            if (!BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
+                mazePath.moveTo(((x + 0.5) * gridSpacing), ((y + 1.5) * gridSpacing));
+                int offset = 0;
+                while (x + offset + 1 < endX) { // see if we can extend this line more
+                    position++; // move to the right one square
+                    if (!BitArray_readBit(connected, position)) // are the position and the one next to it connected?
+                        offset++; // extend the endpoint of the line
+                    else
+                        break; // there is a wall, the line needs to end
+                }
+                mazePath.lineTo(((x + (offset + 1.5)) * gridSpacing), ((y + 1.5) * gridSpacing));
+                x += offset; // if we were able to extend the line, adjust the index variable
+            }
+        }
+    }
+
+    QPen hallPen(Qt::black);
+    hallPen.setWidth(wallThickness);
+    if (roundCaps) {
+        hallPen.setCapStyle(Qt::RoundCap);
+        hallPen.setJoinStyle(Qt::RoundJoin);
+    } else {
+        hallPen.setCapStyle(Qt::SquareCap);
+        hallPen.setJoinStyle((Qt::MiterJoin));
+    }
 
     painter->setPen(hallPen);
     painter->drawPath(mazePath);
@@ -246,7 +357,7 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
-                while (x + 1 < endX) { // see if we can extend this line more
+                while (x + offset + 1 < endX) { // see if we can extend this line more
                     position++; // move to the right one square
                     if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
                         offset++; // extend the endpoint of the line
@@ -267,7 +378,7 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
-                while (y + 1 < endY) { // see if we can extend this line more
+                while (y + offset + 1 < endY) { // see if we can extend this line more
                     position += mazeWidth; // move down one square
                     if (BitArray_readBit(connected, position)) // are the position and the one next to it connected?
                         offset++; // extend the endpoint of the line
@@ -282,7 +393,7 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
 
     QPen solutionPen(Qt::red);
     solutionPen.setWidth(solutionThickness);
-    if (roundedPaths)
+    if (roundCaps)
         solutionPen.setCapStyle(Qt::RoundCap);
     else
         solutionPen.setCapStyle(Qt::SquareCap);
@@ -316,9 +427,12 @@ void MazeWidget::printMaze()
             painter.setBrush(brush);
             painter.drawRect(scaleRect(rect));
         } else {
-            paintBackground(&painter, scaleRect(rect));
-            if (showMaze)
-                paintMaze(&painter, scaleRect(rect));
+            if (showMaze) {
+                if (inverse)
+                    paintMazePaths(&painter, scaleRect(rect));
+                else
+                    paintMazeWalls(&painter, scaleRect(rect));
+            }
             if (showSolution)
                 paintSolution(&painter, scaleRect(rect));
         }
@@ -354,9 +468,13 @@ void MazeWidget::exportImage()
             painter.setBrush(brush);
             painter.drawRect(scaleRect(rect));
         } else {
-            paintBackground(&painter, scaleRect(rect));
-            if (showMaze)
-                paintMaze(&painter, scaleRect(rect));
+            paintPathBackground(&painter, scaleRect(rect));
+            if (showMaze) {
+                if (inverse)
+                    paintMazePaths(&painter, scaleRect(rect));
+                else
+                    paintMazeWalls(&painter, scaleRect(rect));
+            }
             if (showSolution)
                 paintSolution(&painter, scaleRect(rect));
         }
@@ -382,12 +500,12 @@ void MazeWidget::paintEvent(QPaintEvent *event)
         painter.drawRect(scaleRect(event->rect()));
     } else {
         QVectorIterator<QRect> i(event->region().rects());
-        while (i.hasNext())
-            paintBackground(&painter, scaleRect(i.next()));
         if (showMaze) {
-            i.toFront();
             while (i.hasNext())
-                paintMaze(&painter, scaleRect(i.next()));
+                if (inverse)
+                    paintMazePaths(&painter, scaleRect(i.next()));
+                else
+                    paintMazeWalls(&painter, scaleRect(i.next()));
         }
         if (showSolution) {
             i.toFront();
@@ -399,14 +517,14 @@ void MazeWidget::paintEvent(QPaintEvent *event)
     painter.end();
 }
 
-bool MazeWidget::getRoundedPaths() const
+bool MazeWidget::getRoundCaps() const
 {
-    return roundedPaths;
+    return roundCaps;
 }
 
-void MazeWidget::setRoundedPaths(bool value)
+void MazeWidget::setRoundCaps(bool value)
 {
-    roundedPaths = value;
+    roundCaps = value;
     update();
 }
 
@@ -490,20 +608,20 @@ void MazeWidget::setSolutionThickness(int value)
 void MazeWidget::resetDefaultSpacing()
 {
     gridSpacing = DEFAULT_GRID_SPACING;
-    hallThickness = DEFAULT_HALL_THICKNESS;
+    wallThickness = DEFAULT_WALL_THICKNESS;
     solutionThickness = DEFAULT_SOLUTION_THICKNESS;
     resetWidgetSize();
     update();
 }
 
-int MazeWidget::getHallThickness() const
+int MazeWidget::getWallThickness() const
 {
-    return hallThickness;
+    return wallThickness;
 }
 
-void MazeWidget::setHallThickness(int value)
+void MazeWidget::setWallThickness(int value)
 {
-    hallThickness = value;
+    wallThickness = value;
     update();
 }
 

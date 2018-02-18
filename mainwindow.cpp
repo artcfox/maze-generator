@@ -30,8 +30,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionShow_Solution->setChecked(mazeWidget->getShowSolution());
     ui->actionShow_Maze->setChecked(mazeWidget->getShowMaze());
-    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
     ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
     ui->actionStatus_bar->setChecked(showStatusBar);
 
     ui->statusBar->addPermanentWidget(&permanentStatus, 0);
@@ -66,10 +67,10 @@ void MainWindow::on_actionShow_Maze_triggered()
     ui->actionShow_Maze->setChecked(mazeWidget->getShowMaze());
 }
 
-void MainWindow::on_action_Rounded_Paths_triggered()
+void MainWindow::on_action_Round_Caps_triggered()
 {
-    mazeWidget->setRoundedPaths(!mazeWidget->getRoundedPaths());
-    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
+    mazeWidget->setRoundCaps(!mazeWidget->getRoundCaps());
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
 }
 
 void MainWindow::on_action_New_Maze_triggered()
@@ -92,36 +93,40 @@ void MainWindow::on_actionE_xit_triggered()
     QApplication::quit();
 }
 
-void MainWindow::on_action_Distance_Between_Paths_triggered()
+void MainWindow::on_action_Distance_Between_Walls_triggered()
 {
     bool ok;
-    int value = QInputDialog::getInt(this, tr("Set Distance Between Paths"), tr("Distance Between Paths:                   "), mazeWidget->getGridSpacing(), mazeWidget->getHallThickness() + 1, 256, 1, &ok);
+    int value = QInputDialog::getInt(this, tr("Set Distance Between Walls"), tr("Distance Between Walls:                   "), mazeWidget->getGridSpacing(), 2, 256, 1, &ok);
     if (ok)
         mazeWidget->setGridSpacing(value);
 }
 
-void MainWindow::on_action_Path_Width_triggered()
+void MainWindow::on_action_Wall_Thickness_triggered()
 {
     bool ok;
-    int value = QInputDialog::getInt(this, tr("Set Path Width"), tr("Path Width:"), mazeWidget->getHallThickness(), mazeWidget->getSolutionThickness(), mazeWidget->getGridSpacing() - 1, 1, &ok);
+    int value = QInputDialog::getInt(this, tr("Set Wall Thickness"), tr("Wall Thickness:"), mazeWidget->getWallThickness(), 1, 256, 1, &ok);
     if (ok)
-        mazeWidget->setHallThickness(value);
+        mazeWidget->setWallThickness(value);
 }
 
-void MainWindow::on_action_Solution_Width_triggered()
+void MainWindow::on_action_Solution_Thickness_triggered()
 {
     bool ok;
-    int value = QInputDialog::getInt(this, tr("Set Solution Width"), tr("Solution Width:"), mazeWidget->getSolutionThickness(), 1, mazeWidget->getHallThickness(), 1, &ok);
+    int value = QInputDialog::getInt(this, tr("Set Solution Thickness"), tr("Solution Thickness:"), mazeWidget->getSolutionThickness(), 1, 256, 1, &ok);
     if (ok)
         mazeWidget->setSolutionThickness(value);
 }
 
-void MainWindow::on_action_Reset_Distance_Widths_triggered()
+void MainWindow::on_action_Default_Maze_Style_triggered()
 {
+    on_actionZoom_Normal_triggered();
     mazeWidget->resetDefaultSpacing();
-    mazeWidget->setRoundedPaths(true);
-    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
-}
+    mazeWidget->setRoundCaps(true);
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
+    mazeWidget->setAntialiased(false);
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+    mazeWidget->setInverse(false);
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());}
 
 void MainWindow::on_action_About_triggered()
 {
@@ -193,11 +198,16 @@ void MainWindow::enableMenuItems(bool enabled)
 
 void MainWindow::on_action_Classic_Maze_Style_triggered()
 {
-    mazeWidget->setSolutionThickness(2);
-    mazeWidget->setHallThickness(6);
-    mazeWidget->setGridSpacing(7);
-    mazeWidget->setRoundedPaths(false);
-    ui->action_Rounded_Paths->setChecked(mazeWidget->getRoundedPaths());
+    on_actionZoom_Normal_triggered();
+    mazeWidget->setSolutionThickness(3);
+    mazeWidget->setWallThickness(1);
+    mazeWidget->setGridSpacing(8);
+    mazeWidget->setRoundCaps(false);
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
+    mazeWidget->setAntialiased(false);
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+    mazeWidget->setInverse(false);
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
 }
 
 void MainWindow::on_actionZoom_In_triggered()
@@ -240,4 +250,24 @@ void MainWindow::on_actionAn_tialiased_triggered()
 {
     mazeWidget->setAntialiased(!mazeWidget->getAntialiased());
     ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+}
+
+void MainWindow::on_action_Tiny_Maze_Style_triggered()
+{
+    on_actionZoom_Normal_triggered();
+    mazeWidget->setSolutionThickness(1);
+    mazeWidget->setWallThickness(1);
+    mazeWidget->setGridSpacing(2);
+    mazeWidget->setRoundCaps(false);
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
+    mazeWidget->setAntialiased(false);
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+    mazeWidget->setInverse(false);
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
+}
+
+void MainWindow::on_actionIn_verse_triggered()
+{
+    mazeWidget->setInverse(!mazeWidget->getInverse());
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
 }
