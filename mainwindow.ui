@@ -32,6 +32,7 @@
       <string>M&amp;aze Styles</string>
      </property>
      <addaction name="action_Default_Maze_Style"/>
+     <addaction name="actionDefault_In_verse"/>
      <addaction name="action_Classic_Maze_Style"/>
      <addaction name="action_Tiny_Maze_Style"/>
      <addaction name="separator"/>
@@ -240,6 +241,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionDefault_In_verse">
+   <property name="text">
+    <string>Default In&amp;verse</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
  </widget>

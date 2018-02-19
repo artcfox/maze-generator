@@ -126,7 +126,8 @@ void MainWindow::on_action_Default_Maze_Style_triggered()
     mazeWidget->setAntialiased(false);
     ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
     mazeWidget->setInverse(false);
-    ui->actionIn_verse->setChecked(mazeWidget->getInverse());}
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
+}
 
 void MainWindow::on_action_About_triggered()
 {
@@ -269,5 +270,18 @@ void MainWindow::on_action_Tiny_Maze_Style_triggered()
 void MainWindow::on_actionIn_verse_triggered()
 {
     mazeWidget->setInverse(!mazeWidget->getInverse());
+    ui->actionIn_verse->setChecked(mazeWidget->getInverse());
+}
+
+void MainWindow::on_actionDefault_In_verse_triggered()
+{
+    on_actionZoom_Normal_triggered();
+    mazeWidget->resetDefaultSpacing();
+    mazeWidget->setWallThickness(mazeWidget->getGridSpacing() - mazeWidget->getWallThickness());
+    mazeWidget->setRoundCaps(true);
+    ui->action_Round_Caps->setChecked(mazeWidget->getRoundCaps());
+    mazeWidget->setAntialiased(false);
+    ui->actionAn_tialiased->setChecked(mazeWidget->getAntialiased());
+    mazeWidget->setInverse(true);
     ui->actionIn_verse->setChecked(mazeWidget->getInverse());
 }

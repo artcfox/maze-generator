@@ -77,6 +77,8 @@ private slots:
 
     void on_actionIn_verse_triggered();
 
+    void on_actionDefault_In_verse_triggered();
+
 private:
     Ui::MainWindow *ui;
     DragScrollArea *scrollArea;
