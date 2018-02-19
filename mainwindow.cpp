@@ -37,10 +37,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->statusBar->addPermanentWidget(&permanentStatus, 0);
 
-    singleShot.setSingleShot(true);
-    singleShot.setInterval(3000);
-    connect(&singleShot, SIGNAL(timeout()), this, SLOT(hide_mazeCreated()));
-
     connect(mazeWidget, SIGNAL(on_deletingOldMaze()), this, SLOT(on_deletingOldMaze()));
     connect(mazeWidget, SIGNAL(on_allocatingMemory()), this, SLOT(on_allocatingMemory()));
     connect(mazeWidget, SIGNAL(on_generatingMaze()), this, SLOT(on_generatingMaze()));
@@ -82,7 +78,6 @@ void MainWindow::on_action_New_Maze_triggered()
         mazeWidget->generateMaze();
         enableMenuItems(false);
         QApplication::setOverrideCursor(Qt::BusyCursor);
-        singleShot.stop();
     }
 
     delete newDialog;
@@ -140,35 +135,41 @@ void MainWindow::on_action_About_triggered()
 
 void MainWindow::on_deletingOldMaze()
 {
-    permanentStatus.setText("Deleting Old Maze...");
+    permanentStatus.setText("<b>Deleting Old Maze...</b>");
 }
 
 void MainWindow::on_allocatingMemory()
 {
-    permanentStatus.setText("Allocating Memory...");
+    permanentStatus.setText("<b>Allocating Memory...</b>");
 }
 
 void MainWindow::on_generatingMaze()
 {
-    permanentStatus.setText("Generating Maze...");
+    permanentStatus.setText(QString("<b>Generating %1x%2 Maze...</b>")
+                            .arg(mazeWidget->getMazeWidth())
+                            .arg(mazeWidget->getMazeHeight()));
 }
 
 void MainWindow::on_solvingMaze()
 {
-    permanentStatus.setText("Solving Maze...");
+    permanentStatus.setText(QString("<b>Solving %1x%2 Maze...</b>")
+                            .arg(mazeWidget->getMazeWidth())
+                            .arg(mazeWidget->getMazeHeight()));
 }
 
 void MainWindow::on_mazeCreated()
 {
     QApplication::restoreOverrideCursor();
     enableMenuItems(true);
-    permanentStatus.setText("Maze Solved!");
-    singleShot.start(3000);
-}
-
-void MainWindow::hide_mazeCreated()
-{
-    permanentStatus.setText("");
+    int w = mazeWidget->getMazeWidth();
+    int h = mazeWidget->getMazeHeight();
+    int s = mazeWidget->getSolutionLength();
+    permanentStatus.setText(QString("<b>Size: %1x%2, Cells: %3, Walls: %4, Solution Length: %5</b>")
+                     .arg(w)
+                     .arg(h)
+                     .arg(w * h)
+                     .arg(((w - 1) * h + w * (h - 1)) - (w * h - 1))
+                     .arg(s));
 }
 
 void MainWindow::on_actionStatus_bar_triggered()

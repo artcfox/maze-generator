@@ -51,6 +51,7 @@ void MazeWidget::generateMaze()
 
     GenerateMazeWorker *worker = new GenerateMazeWorker(myMaze, mazeWidth, mazeHeight);
     myMaze = 0; // clear our copy
+    solutionLength = 0;
     worker->moveToThread(&workerThread);
     connect(worker, SIGNAL(generateMazeWorker_error(QString)), this, SLOT(generateMazeWorker_error(QString)));
     connect(worker, SIGNAL(generateMazeWorker_finished(void*)), this, SLOT(generateMazeWorker_finished(void*)));
@@ -75,6 +76,11 @@ void MazeWidget::resetWidgetSize()
     setMaximumWidth((mazeWidth + 1) * gridSpacing * scaling);
     setMinimumHeight((mazeHeight + 1) * gridSpacing * scaling);
     setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
+}
+
+int MazeWidget::getSolutionLength() const
+{
+    return solutionLength;
 }
 
 bool MazeWidget::getInverse() const
@@ -551,6 +557,7 @@ void MazeWidget::generateMazeWorker_solvingMaze()
 void MazeWidget::generateMazeWorker_finished(void *maze)
 {
     creatingMaze = false;
+    solutionLength = ((MazeRef)maze)->solutionLength;
     myMaze = (MazeRef)maze;
     resetWidgetSize();
     update();
