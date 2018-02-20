@@ -31,7 +31,7 @@ signals:
 
 public slots:
     void process() {
-        int dims[2] = { mazeWidth, mazeHeight };
+        uint32_t dims[2] = { mazeWidth, mazeHeight };
         if ((myMaze == 0) || (myMaze->dims[0] != dims[0]) || (myMaze->dims[1] != dims[1])) {
             emit generateMazeWorker_deletingOldMaze();
             Maze_delete(myMaze);
@@ -48,8 +48,8 @@ public slots:
 
 private:
     MazeRef myMaze = 0;
-    int mazeWidth = 0;
-    int mazeHeight = 0;
+    uint32_t mazeWidth = 0;
+    uint32_t mazeHeight = 0;
 };
 
 #endif // GENERATEMAZEWORKER_H

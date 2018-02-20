@@ -25,19 +25,19 @@ typedef enum _MazeCreateFlags {
 } MazeCreateFlags;
 
 typedef struct _Wall {
-    int cell1;
-    int cell2;
+    uint32_t cell1;
+    uint32_t cell2;
 } Wall;
 
 typedef struct _Maze {
-    int totalPositions;
-    int totalWalls;
+    uint32_t totalPositions;
+    uint32_t totalWalls;
     Wall *lottery;
-    unsigned char *neighborCount, *neighborCountCopy;
+    uint8_t *neighborCount, *neighborCountCopy;
     bool needsNeighborCountRefreshed;
 
-    int *dims;
-    unsigned int dims_length;
+    uint32_t *dims;
+    uint32_t dims_length;
     MazeCreateFlags createFlags;
     DisjSetsRef sets;
 
@@ -45,17 +45,17 @@ typedef struct _Maze {
     BitArrayRef *solution;
 
     // Trivia
-    int solutionLength;
-    int start;
-    int end;
+    uint32_t solutionLength;
+    uint32_t start;
+    uint32_t end;
 } Maze;
 typedef Maze *MazeRef;
 
-MazeRef Maze_create(int *dims, unsigned int length, MazeCreateFlags flags);
+MazeRef Maze_create(uint32_t *dims, uint32_t length, MazeCreateFlags flags);
 void Maze_delete(MazeRef m);
 
 void Maze_generate(MazeRef m);
-void Maze_solve(MazeRef m, int start, int end);
+void Maze_solve(MazeRef m, uint32_t start, uint32_t end);
 
 #ifdef __cplusplus
 }

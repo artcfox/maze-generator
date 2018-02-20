@@ -45,39 +45,39 @@ void NewDialog::on_spinBoxHeight_valueChanged(int arg1)
 
 void NewDialog::updateMemoryDisplay()
 {
-    unsigned long long memory = sizeof(Maze);
-    int dims[2] = { width, height };
-    int length = 2;
-    int totalPositions = 1;
-    int totalWalls = 0;
+    uint64_t memory = sizeof(Maze);
+    uint32_t dims[2] = { width, height };
+    uint32_t length = 2;
+    uint32_t totalPositions = 1;
+    uint32_t totalWalls = 0;
 
-    memory += sizeof(unsigned int) * length;
+    memory += sizeof(uint32_t) * length;
 
-    for (int i = 0; i < length; ++i)
+    for (uint32_t i = 0; i < length; ++i)
         totalPositions *= dims[i];
 
-    for (int i = 0; i < length; ++i) {
-        int subTotal = 1;
-        for (int j = 0; j < length; ++j)
+    for (uint32_t i = 0; i < length; ++i) {
+        uint32_t subTotal = 1;
+        for (uint32_t j = 0; j < length; ++j)
             if (j != i)
                 subTotal *= dims[j];
         totalWalls += subTotal * (dims[i] - 1);
     }
 
-    int maxSize = (totalWalls > (totalPositions - 1) * 3) ? totalWalls : (totalPositions - 1) * 3;
+    uint32_t maxSize = (totalWalls > (totalPositions - 1) * 3) ? totalWalls : (totalPositions - 1) * 3;
 
     memory += sizeof(Wall) * maxSize;
-    memory += sizeof(unsigned char) * totalPositions;
+    memory += sizeof(uint8_t) * totalPositions;
     memory += sizeof(BitArrayRef) * length * 2;
 
-    memory += sizeof(int) * totalPositions; // DisjSets_create
+    memory += sizeof(int32_t) * totalPositions; // DisjSets_create
     memory += sizeof(BitArray) * length * 2;
     memory += (totalPositions / 8 + ((totalPositions % 8) ? 1 : 0)) * length * 2;
 
     ui->labelMemory->setText(sizeHuman(memory));
 }
 
-QString NewDialog::sizeHuman(unsigned long long size)
+QString NewDialog::sizeHuman(uint64_t size)
 {
     float num = size;
     QStringList list;

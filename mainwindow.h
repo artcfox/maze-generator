@@ -76,6 +76,10 @@ private slots:
 
     void on_actionDefault_In_verse_triggered();
 
+    void on_action_Save_Maze_triggered();
+
+    void on_action_Load_Maze_triggered();
+
 private:
     Ui::MainWindow *ui;
     DragScrollArea *scrollArea;

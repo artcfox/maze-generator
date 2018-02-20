@@ -33,11 +33,11 @@ private slots:
 
 private:
     void updateMemoryDisplay();
-    QString sizeHuman(unsigned long long size);
+    QString sizeHuman(uint64_t size);
 
     Ui::NewDialog *ui;
-    int width = 0;
-    int height = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
 };
 
 #endif // NEWDIALOG_H

@@ -59,6 +59,8 @@ public:
 
     void printMaze();
     void exportImage();
+    void saveNative();
+    void loadNative();
 
     qreal getScaling() const;
     void setScaling(const qreal &value);
@@ -71,7 +73,7 @@ public:
     bool getInverse() const;
     void setInverse(bool value);
 
-    int getSolutionLength() const;
+    uint32_t getSolutionLength() const;
 
 signals:
     void operate();
@@ -104,7 +106,7 @@ private:
     MazeRef myMaze = 0;
     int mazeWidth = 25;
     int mazeHeight = 25;
-    int solutionLength = 0; // trivia returned from the maze solver
+    uint32_t solutionLength = 0; // trivia returned from the maze solver
 
     int gridSpacing = DEFAULT_GRID_SPACING;
     int wallThickness = DEFAULT_WALL_THICKNESS;

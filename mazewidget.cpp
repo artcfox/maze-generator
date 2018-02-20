@@ -21,6 +21,7 @@
 #include <QFileInfo>
 #include <QCoreApplication>
 #include <QMessageBox>
+#include <QtEndian>
 
 MazeWidget::MazeWidget(QWidget *parent) : QWidget(parent)
 {
@@ -78,7 +79,7 @@ void MazeWidget::resetWidgetSize()
     setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
 }
 
-int MazeWidget::getSolutionLength() const
+uint32_t MazeWidget::getSolutionLength() const
 {
     return solutionLength;
 }
@@ -448,7 +449,7 @@ void MazeWidget::printMaze()
 
 void MazeWidget::exportImage()
 {
-    QString fileName= QFileDialog::getSaveFileName(this, tr("Export Image..."), QCoreApplication::applicationDirPath(), "BMP (*.bmp)" );
+    QString fileName= QFileDialog::getSaveFileName(this, tr("Export Image..."), QCoreApplication::applicationDirPath(), "BMP Files (*.bmp)" );
     if (!fileName.isNull())
     {
         QFileInfo fileInfo(fileName);
@@ -488,6 +489,126 @@ void MazeWidget::exportImage()
         painter.end();
         image.save(fileName);
     }
+}
+
+void MazeWidget::saveNative()
+{
+    QString fileName= QFileDialog::getSaveFileName(this, tr("Save Maze..."), QCoreApplication::applicationDirPath(), "Maze Files (*.maze)" );
+    if (!fileName.isNull())
+    {
+        QFileInfo fileInfo(fileName);
+        if (fileInfo.suffix().isEmpty())
+            fileName.append(".maze");
+
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadWrite)) {
+            qDebug() << "Error opening the file.";
+            return;
+        }
+        BitArray baMaze;
+        baMaze.numBits = myMaze->totalWalls;
+        baMaze.data_length = baMaze.numBits / 8 + ((baMaze.numBits % 8) ? 1 : 0);
+        if (!file.resize(sizeof(uint32_t) * (myMaze->dims_length + 1) + baMaze.data_length)) {
+            qDebug() << "Cannot resize the file.";
+            return;
+        }
+        uchar *memory = file.map(0, sizeof(uint32_t) * 3 + baMaze.data_length);
+        if (!memory) {
+            qDebug() << "Error mapping the file.";
+            return;
+        }
+        uint32_t dims_length = myMaze->dims_length;
+        qToLittleEndian(dims_length, memory);
+        for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
+            uint32_t dim = myMaze->dims[i];
+            qToLittleEndian(dim, memory + sizeof(uint32_t) * (i + 1));
+        }
+
+        baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1);
+        BitArray_reset(&baMaze);
+
+        uint32_t lotteryIndex = 0;
+        for (uint32_t position = 0; position < myMaze->totalPositions; ++position) {
+            uint32_t placeValue = 1;
+            for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
+                uint32_t valueForThisDim = (position / placeValue) % myMaze->dims[i];
+                if (valueForThisDim < myMaze->dims[i] - 1) {
+                    if (BitArray_readBit(myMaze->halls[i], position)) {
+                        BitArray_setBit(&baMaze, lotteryIndex);
+                        qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
+                        qDebug() << "Corresponds to Wall #" << lotteryIndex;
+                    }
+                    lotteryIndex++;
+                }
+                placeValue *= myMaze->dims[i];
+            }
+        }
+
+        file.unmap(memory);
+    }
+
+}
+
+void MazeWidget::loadNative()
+{
+    QString fileName= QFileDialog::getOpenFileName(this, tr("Open Maze..."), QCoreApplication::applicationDirPath(), "Maze Files (*.maze)" );
+    if (fileName.isNull())
+        return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Error opening the file.";
+        return;
+    }
+    uchar *memory = file.map(0, file.size());
+    if (!memory) {
+        qDebug() << "Error mapping the file.";
+        return;
+    }
+    uint32_t dims_length = qFromLittleEndian<uint32_t>(memory);
+    uint32_t *dims = new uint32_t[dims_length];
+    for (uint32_t i = 0; i < dims_length; ++i) {
+        dims[i] = qFromLittleEndian<uint32_t>(memory + sizeof(uint32_t) * (i + 1));
+        qDebug() << "Dimension " << i << "= " << dims[i];
+    }
+
+    uint32_t totalPositions = 1;
+    for (uint32_t i = 0; i < dims_length; ++i)
+        totalPositions *= dims[i];
+
+    uint32_t totalWalls = 0;
+    for (uint32_t i = 0; i < dims_length; ++i) {
+        uint32_t subTotal = 1;
+        for (uint32_t j = 0; j < dims_length; ++j)
+            if (j != i)
+                subTotal *= dims[j];
+        totalWalls += subTotal * (dims[i] - 1);
+    }
+
+    qDebug() << "Width: " << dims[0] << ", Height: " << dims[1];
+
+    BitArray baMaze;
+    baMaze.numBits = totalWalls;
+    baMaze.data_length = baMaze.numBits / 8 + ((baMaze.numBits % 8) ? 1 : 0);
+    baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1); // The + 1 is to skip the dims_length header
+
+    uint32_t lotteryIndex = 0;
+    for (uint32_t position = 0; position < totalPositions; ++position) {
+        uint32_t placeValue = 1;
+        for (uint32_t i = 0; i < dims_length; ++i) {
+            uint32_t valueForThisDim = (position / placeValue) % dims[i];
+            if (valueForThisDim < dims[i] - 1) {
+                if (BitArray_readBit(&baMaze, lotteryIndex)) {
+                    qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
+                    qDebug() << "Corresponds to Wall #" << lotteryIndex;
+                }
+                lotteryIndex++;
+            }
+            placeValue *= dims[i];
+        }
+    }
+    delete [] dims;
+    file.unmap(memory);
 }
 
 void MazeWidget::paintEvent(QPaintEvent *event)

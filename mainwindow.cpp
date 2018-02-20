@@ -286,3 +286,13 @@ void MainWindow::on_actionDefault_In_verse_triggered()
     mazeWidget->setInverse(true);
     ui->actionIn_verse->setChecked(mazeWidget->getInverse());
 }
+
+void MainWindow::on_action_Save_Maze_triggered()
+{
+    mazeWidget->saveNative();
+}
+
+void MainWindow::on_action_Load_Maze_triggered()
+{
+    mazeWidget->loadNative();
+}

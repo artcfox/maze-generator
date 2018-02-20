@@ -58,6 +58,9 @@
      <string>&amp;File</string>
     </property>
     <addaction name="action_New_Maze"/>
+    <addaction name="action_Save_Maze"/>
+    <addaction name="action_Load_Maze"/>
+    <addaction name="separator"/>
     <addaction name="actionExport_Image"/>
     <addaction name="action_Print"/>
     <addaction name="separator"/>
@@ -249,6 +252,16 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
+  <action name="action_Save_Maze">
+   <property name="text">
+    <string>&amp;Save Maze...</string>
+   </property>
+  </action>
+  <action name="action_Load_Maze">
+   <property name="text">
+    <string>&amp;Load Maze...</string>
    </property>
   </action>
  </widget>
