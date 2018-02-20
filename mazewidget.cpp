@@ -186,7 +186,7 @@ void MazeWidget::paintMazePaths(QPainter *painter, const QRect &rect)
     BitArrayRef connected = myMaze->halls[0];
     for (int y = startY; y < endY; ++y) {
         for (int x = startX; x < endX; ++x) {
-            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            uint32_t position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
@@ -207,7 +207,7 @@ void MazeWidget::paintMazePaths(QPainter *painter, const QRect &rect)
     connected = myMaze->halls[1];
     for (int x = startX; x < endX; ++x) {
         for (int y = startY; y < endY; ++y) {
-            int position = y * mazeWidth + x;
+            uint32_t position = y * mazeWidth + x;
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
@@ -274,7 +274,7 @@ void MazeWidget::paintMazeWalls(QPainter *painter, const QRect &rect)
     BitArrayRef connected = myMaze->halls[0];
     for (int x = startX; x < endX - 1; ++x) {
         for (int y = startY; y < endY; ++y) {
-            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            uint32_t position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
             if (!BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 1.5) * gridSpacing), ((y + 0.5) * gridSpacing));
                 int offset = 0;
@@ -295,7 +295,7 @@ void MazeWidget::paintMazeWalls(QPainter *painter, const QRect &rect)
     connected = myMaze->halls[1];
     for (int y = startY; y < endY - 1; ++y) {
         for (int x = startX; x < endX; ++x) {
-            int position = y * mazeWidth + x;
+            uint32_t position = y * mazeWidth + x;
             if (!BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 mazePath.moveTo(((x + 0.5) * gridSpacing), ((y + 1.5) * gridSpacing));
                 int offset = 0;
@@ -360,7 +360,7 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
     BitArrayRef connected = myMaze->solution[0];
     for (int y = startY; y < endY; ++y) {
         for (int x = startX; x < endX; ++x) {
-            int position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            uint32_t position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
@@ -381,7 +381,7 @@ void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
     connected = myMaze->solution[1];
     for (int x = startX; x < endX; ++x) {
         for (int y = startY; y < endY; ++y) {
-            int position = y * mazeWidth + x;
+            uint32_t position = y * mazeWidth + x;
             if (BitArray_readBit(connected, position)) { // are the position and the one next to it connected?
                 solutionPath.moveTo(((x + 1) * gridSpacing), ((y + 1) * gridSpacing));
                 int offset = 0;
@@ -494,59 +494,61 @@ void MazeWidget::exportImage()
 void MazeWidget::saveNative()
 {
     QString fileName= QFileDialog::getSaveFileName(this, tr("Save Maze..."), QCoreApplication::applicationDirPath(), "Maze Files (*.maze)" );
-    if (!fileName.isNull())
-    {
-        QFileInfo fileInfo(fileName);
-        if (fileInfo.suffix().isEmpty())
-            fileName.append(".maze");
+    if (fileName.isNull())
+        return;
 
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadWrite)) {
-            qDebug() << "Error opening the file.";
-            return;
-        }
-        BitArray baMaze;
-        baMaze.numBits = myMaze->totalWalls;
-        baMaze.data_length = baMaze.numBits / 8 + ((baMaze.numBits % 8) ? 1 : 0);
-        if (!file.resize(sizeof(uint32_t) * (myMaze->dims_length + 1) + baMaze.data_length)) {
-            qDebug() << "Cannot resize the file.";
-            return;
-        }
-        uchar *memory = file.map(0, sizeof(uint32_t) * 3 + baMaze.data_length);
-        if (!memory) {
-            qDebug() << "Error mapping the file.";
-            return;
-        }
-        uint32_t dims_length = myMaze->dims_length;
-        qToLittleEndian(dims_length, memory);
-        for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
-            uint32_t dim = myMaze->dims[i];
-            qToLittleEndian(dim, memory + sizeof(uint32_t) * (i + 1));
-        }
+    QFileInfo fileInfo(fileName);
+    if (fileInfo.suffix().isEmpty())
+        fileName.append(".maze");
 
-        baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1);
-        BitArray_reset(&baMaze);
-
-        uint32_t lotteryIndex = 0;
-        for (uint32_t position = 0; position < myMaze->totalPositions; ++position) {
-            uint32_t placeValue = 1;
-            for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
-                uint32_t valueForThisDim = (position / placeValue) % myMaze->dims[i];
-                if (valueForThisDim < myMaze->dims[i] - 1) {
-                    if (BitArray_readBit(myMaze->halls[i], position)) {
-                        BitArray_setBit(&baMaze, lotteryIndex);
-                        qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
-                        qDebug() << "Corresponds to Wall #" << lotteryIndex;
-                    }
-                    lotteryIndex++;
-                }
-                placeValue *= myMaze->dims[i];
-            }
-        }
-
-        file.unmap(memory);
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadWrite)) {
+        qDebug() << "Error opening the file.";
+        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be opened.").arg(fileName));
+        return;
+    }
+    BitArray baMaze;
+    baMaze.numBits = myMaze->totalWalls;
+    baMaze.data_length = baMaze.numBits / 8 + ((baMaze.numBits % 8) ? 1 : 0);
+    if (!file.resize(sizeof(uint32_t) * (myMaze->dims_length + 1) + baMaze.data_length)) {
+        qDebug() << "Cannot resize the file.";
+        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be resized.").arg(fileName));
+        return;
+    }
+    uchar *memory = file.map(0, sizeof(uint32_t) * 3 + baMaze.data_length);
+    if (!memory) {
+        qDebug() << "Error mapping the file.";
+        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be mapped to memory.").arg(fileName));
+        return;
+    }
+    uint32_t dims_length = myMaze->dims_length;
+    qToLittleEndian(dims_length, memory);
+    for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
+        uint32_t dim = myMaze->dims[i];
+        qToLittleEndian(dim, memory + sizeof(uint32_t) * (i + 1));
     }
 
+    baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1);
+    BitArray_reset(&baMaze);
+
+    uint32_t lotteryIndex = 0;
+    for (uint32_t position = 0; position < myMaze->totalPositions; ++position) {
+        uint32_t placeValue = 1;
+        for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
+            uint32_t valueForThisDim = (position / placeValue) % myMaze->dims[i];
+            if (valueForThisDim < myMaze->dims[i] - 1) {
+                if (BitArray_readBit(myMaze->halls[i], position)) {
+                    BitArray_setBit(&baMaze, lotteryIndex);
+//                        qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
+//                        qDebug() << "Corresponds to Wall #" << lotteryIndex;
+                }
+                lotteryIndex++;
+            }
+            placeValue *= myMaze->dims[i];
+        }
+    }
+
+    file.unmap(memory);
 }
 
 void MazeWidget::loadNative()
@@ -558,11 +560,13 @@ void MazeWidget::loadNative()
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly)) {
         qDebug() << "Error opening the file.";
+        QMessageBox::warning(this, "Error Loading Maze", QString("The file '%1' could not be opened.").arg(fileName));
         return;
     }
     uchar *memory = file.map(0, file.size());
     if (!memory) {
         qDebug() << "Error mapping the file.";
+        QMessageBox::warning(this, "Error Loading Maze", QString("The file '%1' could not be mapped to memory.").arg(fileName));
         return;
     }
     uint32_t dims_length = qFromLittleEndian<uint32_t>(memory);
@@ -585,12 +589,18 @@ void MazeWidget::loadNative()
         totalWalls += subTotal * (dims[i] - 1);
     }
 
-    qDebug() << "Width: " << dims[0] << ", Height: " << dims[1];
-
     BitArray baMaze;
     baMaze.numBits = totalWalls;
     baMaze.data_length = baMaze.numBits / 8 + ((baMaze.numBits % 8) ? 1 : 0);
     baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1); // The + 1 is to skip the dims_length header
+
+    creatingMaze = true;
+    update();
+
+    for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
+        BitArray_reset(myMaze->halls[i]);
+        BitArray_reset(myMaze->solution[i]);
+    }
 
     uint32_t lotteryIndex = 0;
     for (uint32_t position = 0; position < totalPositions; ++position) {
@@ -599,8 +609,9 @@ void MazeWidget::loadNative()
             uint32_t valueForThisDim = (position / placeValue) % dims[i];
             if (valueForThisDim < dims[i] - 1) {
                 if (BitArray_readBit(&baMaze, lotteryIndex)) {
-                    qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
-                    qDebug() << "Corresponds to Wall #" << lotteryIndex;
+                    BitArray_setBit(myMaze->halls[i], position);
+//                    qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
+//                    qDebug() << "Corresponds to Wall #" << lotteryIndex;
                 }
                 lotteryIndex++;
             }
@@ -609,6 +620,8 @@ void MazeWidget::loadNative()
     }
     delete [] dims;
     file.unmap(memory);
+    creatingMaze = false;
+    update();
 }
 
 void MazeWidget::paintEvent(QPaintEvent *event)
