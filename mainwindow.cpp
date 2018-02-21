@@ -42,6 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(mazeWidget, SIGNAL(on_generatingMaze()), this, SLOT(on_generatingMaze()));
     connect(mazeWidget, SIGNAL(on_solvingMaze()), this, SLOT(on_solvingMaze()));
     connect(mazeWidget, SIGNAL(on_mazeCreated()), this, SLOT(on_mazeCreated()));
+    connect(mazeWidget, SIGNAL(openMazeWorker_start()), this, SLOT(openMazeWorker_start()));
+    connect(mazeWidget, SIGNAL(on_openMazeError(QString)), this, SLOT(on_openMazeError(QString)));
 }
 
 MainWindow::~MainWindow()
@@ -172,6 +174,23 @@ void MainWindow::on_mazeCreated()
                      .arg(s));
 }
 
+void MainWindow::on_openMazeError(QString err)
+{
+    QApplication::restoreOverrideCursor();
+    enableMenuItems(true);
+    ui->action_Save_Maze_As->setDisabled(true);
+    ui->actionExport_Image->setDisabled(true);
+    ui->action_Print->setDisabled(true);
+    (void)err; // silence unused warning
+    permanentStatus.setText("");
+}
+
+void MainWindow::openMazeWorker_start()
+{
+    enableMenuItems(false);
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+}
+
 void MainWindow::on_actionStatus_bar_triggered()
 {
     showStatusBar = !showStatusBar;
@@ -194,6 +213,8 @@ void MainWindow::on_actionExport_Image_triggered()
 void MainWindow::enableMenuItems(bool enabled)
 {
     ui->action_New_Maze->setEnabled(enabled);
+    ui->action_Open_Maze->setEnabled(enabled);
+    ui->action_Save_Maze_As->setEnabled(enabled);
     ui->actionExport_Image->setEnabled(enabled);
     ui->action_Print->setEnabled(enabled);
 }
@@ -287,12 +308,12 @@ void MainWindow::on_actionDefault_In_verse_triggered()
     ui->actionIn_verse->setChecked(mazeWidget->getInverse());
 }
 
-void MainWindow::on_action_Save_Maze_triggered()
+void MainWindow::on_action_Save_Maze_As_triggered()
 {
-    mazeWidget->saveNative();
+    mazeWidget->saveMazeAs();
 }
 
-void MainWindow::on_action_Load_Maze_triggered()
+void MainWindow::on_action_Open_Maze_triggered()
 {
-    mazeWidget->loadNative();
+    mazeWidget->openMaze();
 }

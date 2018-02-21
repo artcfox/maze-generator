@@ -53,6 +53,8 @@ private slots:
     void on_generatingMaze();
     void on_solvingMaze();
     void on_mazeCreated();
+    void on_openMazeError(QString err);
+    void openMazeWorker_start();
 
     void on_actionStatus_bar_triggered();
 
@@ -76,9 +78,9 @@ private slots:
 
     void on_actionDefault_In_verse_triggered();
 
-    void on_action_Save_Maze_triggered();
+    void on_action_Save_Maze_As_triggered();
 
-    void on_action_Load_Maze_triggered();
+    void on_action_Open_Maze_triggered();
 
 private:
     Ui::MainWindow *ui;

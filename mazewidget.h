@@ -26,6 +26,7 @@ public:
     explicit MazeWidget(QWidget *parent = 0);
     ~MazeWidget();
     void generateMaze();
+    void openMaze();
 
     int getMazeWidth() const;
     void setMazeWidth(int value);
@@ -59,7 +60,7 @@ public:
 
     void printMaze();
     void exportImage();
-    void saveNative();
+    void saveMazeAs();
     void loadNative();
 
     qreal getScaling() const;
@@ -76,23 +77,35 @@ public:
     uint32_t getSolutionLength() const;
 
 signals:
-    void operate();
+    void generateMazeWorker_start();
+    void deleteMazeWorker_start();
+    void openMazeWorker_start();
+
     void on_deletingOldMaze();
     void on_allocatingMemory();
     void on_generatingMaze();
     void on_solvingMaze();
     void on_mazeCreated();
 
+    void on_openMaze();
+    void on_openMazeError(QString err);
+
 public slots:
     void generateMazeWorker_deletingOldMaze();
     void generateMazeWorker_allocatingMemory();
     void generateMazeWorker_generatingMaze();
     void generateMazeWorker_solvingMaze();
-
     void generateMazeWorker_finished(void *maze);
     void generateMazeWorker_error(QString err);
+
     void deleteMazeWorker_finished(void *maze);
     void deleteMazeWorker_error(QString err);
+
+    void openMazeWorker_deletingOldMaze();
+    void openMazeWorker_allocatingMemory();
+    void openMazeWorker_loadingMaze(int width, int height);
+    void openMazeWorker_finished(void *maze);
+    void openMazeWorker_error(QString err);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

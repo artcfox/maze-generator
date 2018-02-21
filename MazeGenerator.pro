@@ -39,7 +39,8 @@ HEADERS  += mainwindow.h \
     newdialog.h \
     generatemazeworker.h \
     deletemazeworker.h \
-    dragscrollarea.h
+    dragscrollarea.h \
+    openmazeworker.h
 
 FORMS    += mainwindow.ui \
     about.ui \
