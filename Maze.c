@@ -39,13 +39,7 @@ MazeRef Maze_create(uint32_t *dims, uint32_t length, MazeCreateFlags flags) {
         m->totalWalls += subTotal * (dims[i] - 1);
     }
 
-    uint32_t maxSize;
-    if (m->createFlags & mcfOutputSolution)
-        maxSize = (m->totalWalls > (m->totalPositions - 1) * 3) ? m->totalWalls : (m->totalPositions - 1) * 3;
-    else
-        maxSize = m->totalWalls;
-
-    m->lottery = (Wall*)malloc(sizeof(Wall) * maxSize);
+    m->lottery = (Wall*)malloc(sizeof(Wall) * m->totalWalls);
 
     if (m->createFlags & mcfOutputSolution)
         m->neighborCount = (unsigned char*)malloc(sizeof(uint8_t) * m->totalPositions);
@@ -157,67 +151,6 @@ void Maze_generate(MazeRef m) {
             }
         }
     }
-}
-
-void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
-    if (!(m->createFlags & mcfOutputSolution)) {
-        fprintf(stderr, "Error: Maze_solve cannot be called without setting mcfOutputSolution in Maze_create\n");
-        return;
-    }
-
-    if (!m || !m->lottery || !m->neighborCount)
-        return;
-
-    m->start = start;
-    m->end = end;
-
-    uint32_t knockedOutWalls = m->totalPositions - 1;
-
-    Wall *input = &m->lottery[knockedOutWalls];
-    Wall *output = &m->lottery[knockedOutWalls * 2];
-    Wall *inputPtr = input + knockedOutWalls;
-    Wall *outputPtr;
-
-    memcpy(input, m->lottery, sizeof(Wall) * knockedOutWalls);
-
-    if (m->createFlags & mcfMultipleSolves) {
-        if (m->needsNeighborCountRefreshed)
-            memcpy(m->neighborCount, m->neighborCountCopy, sizeof(uint8_t) * m->totalPositions);
-        else
-            memcpy(m->neighborCountCopy, m->neighborCount, sizeof(uint8_t) * m->totalPositions);
-    } else if (m->needsNeighborCountRefreshed) {
-        fprintf(stderr, "Error: Maze_solve cannot be called more than once without setting mcfMultipleSolve in Maze_create\n");
-        return;
-    }
-
-    while (true) {
-        outputPtr = output;
-        uint32_t inputLength = inputPtr - input;
-        for (uint32_t i = 0; i < inputLength; ++i) {
-            if ((m->neighborCount[input[i].cell1] == 1 && input[i].cell1 != start && input[i].cell1 != end) ||
-                (m->neighborCount[input[i].cell2] == 1 && input[i].cell2 != start && input[i].cell2 != end)) {
-                m->neighborCount[input[i].cell1]--;
-                m->neighborCount[input[i].cell2]--;
-            } else {
-                output[outputPtr - output] = input[i];
-                outputPtr++;
-            }
-        }
-
-        if (inputPtr - input == outputPtr - output)
-            break;
-
-        Wall *tmp1 = output;
-        Wall *tmp2 = outputPtr;
-        output = input;
-        outputPtr = inputPtr;
-        input = tmp1;
-        inputPtr = tmp2;
-    }
-
-    m->solutionLength = outputPtr - output;
-
-    m->needsNeighborCountRefreshed = true;
 
     if (m->createFlags & mcfOutputMaze) {
         for (uint32_t i = 0; i < m->dims_length; ++i)
@@ -236,6 +169,52 @@ void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
             }
         }
     }
+}
+
+void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
+    if (!(m->createFlags & mcfOutputSolution)) {
+        fprintf(stderr, "Error: Maze_solve cannot be called without setting mcfOutputSolution in Maze_create\n");
+        return;
+    }
+
+    if (!m || !m->lottery || !m->neighborCount)
+        return;
+
+    if (m->createFlags & mcfMultipleSolves) {
+        if (m->needsNeighborCountRefreshed)
+            memcpy(m->neighborCount, m->neighborCountCopy, sizeof(uint8_t) * m->totalPositions);
+        else
+            memcpy(m->neighborCountCopy, m->neighborCount, sizeof(uint8_t) * m->totalPositions);
+    } else if (m->needsNeighborCountRefreshed) {
+        fprintf(stderr, "Error: Maze_solve cannot be called more than once without setting mcfMultipleSolve in Maze_create\n");
+        return;
+    }
+
+    m->start = start;
+    m->end = end;
+
+    uint32_t knockedOutWalls = m->totalPositions - 1;
+    while (true) {
+        bool filledDeadEnd = false;
+        for (uint32_t i = 0; i < knockedOutWalls; ++i) {
+            const uint32_t cell1 = m->lottery[i].cell1;
+            const uint32_t cell2 = m->lottery[i].cell2;
+            if ((m->neighborCount[cell1] == 1 && cell1 != start && cell1 != end) || (m->neighborCount[cell2] == 1 && cell2 != start && cell2 != end)) {
+                m->neighborCount[cell1]--;
+                m->neighborCount[cell2]--;
+                filledDeadEnd = true;
+                Wall tmp = m->lottery[knockedOutWalls - 1]; // swap to the end of the knocked out wall part of the list
+                m->lottery[knockedOutWalls - 1] = m->lottery[i];
+                m->lottery[i] = tmp;
+                knockedOutWalls--;
+            }
+        }
+        if (!filledDeadEnd)
+            break;
+    }
+
+    m->solutionLength = knockedOutWalls;
+    m->needsNeighborCountRefreshed = true;
 
     if (m->createFlags & mcfOutputSolution) {
         for (uint32_t i = 0; i < m->dims_length; ++i)
@@ -246,8 +225,8 @@ void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
             for (uint32_t d = 0; d < m->dims_length; ++d) {
                 if (m->dims[d] == 1)
                     continue;
-                if (output[i].cell2 == output[i].cell1 + placeValue) {
-                    BitArray_setBit(m->solution[d], output[i].cell1);
+                if (m->lottery[i].cell2 == m->lottery[i].cell1 + placeValue) {
+                    BitArray_setBit(m->solution[d], m->lottery[i].cell1);
                     break;
                 }
                 placeValue *= m->dims[d];

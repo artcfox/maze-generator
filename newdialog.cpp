@@ -64,9 +64,7 @@ void NewDialog::updateMemoryDisplay()
         totalWalls += subTotal * (dims[i] - 1);
     }
 
-    uint32_t maxSize = (totalWalls > (totalPositions - 1) * 3) ? totalWalls : (totalPositions - 1) * 3;
-
-    memory += sizeof(Wall) * maxSize;
+    memory += sizeof(Wall) * totalWalls;
     memory += sizeof(uint8_t) * totalPositions;
     memory += sizeof(BitArrayRef) * length * 2;
 

@@ -1,5 +1,5 @@
 /*
- *  loadmazeworker.h
+ *  openmazeworker.h
  *  MazeGenerator
  *
  *  Copyright 2018 Matthew T. Pandina. All rights reserved.
@@ -147,30 +147,6 @@ public slots:
         file.unmap(memory);
 
         myMaze->solutionLength = solutionLength;
-
-//        emit on_mazeCreated();
-//        creatingMaze = false;
-//        update();
-
-
-
-
-
-
-
-
-//        uint32_t dims[2] = { mazeWidth, mazeHeight };
-//        if ((myMaze == 0) || (myMaze->dims[0] != dims[0]) || (myMaze->dims[1] != dims[1])) {
-//            emit generateMazeWorker_deletingOldMaze();
-//            Maze_delete(myMaze);
-//            emit generateMazeWorker_allocatingMemory();
-//            myMaze = Maze_create(dims, 2, (MazeCreateFlags)(mcfOutputMaze | mcfOutputSolution /*| mcfMultipleSolves*/));
-//        }
-
-//        emit generateMazeWorker_generatingMaze();
-//        Maze_generate(myMaze);
-//        emit generateMazeWorker_solvingMaze();
-//        Maze_solve(myMaze, 0, myMaze->totalPositions - 1);
         emit openMazeWorker_finished((void*)myMaze);
     }
 
