@@ -76,10 +76,13 @@ public:
 
     uint32_t getSolutionLength() const;
 
+    bool getSavingMaze() const;
+
 signals:
     void generateMazeWorker_start();
     void deleteMazeWorker_start();
     void openMazeWorker_start();
+    void saveMazeWorker_start();
 
     void on_deletingOldMaze();
     void on_allocatingMemory();
@@ -89,6 +92,10 @@ signals:
 
     void on_openMaze();
     void on_openMazeError(QString err);
+
+    void on_savingMaze();
+    void on_saveMazeError(QString err);
+    void on_mazeSaved();
 
 public slots:
     void generateMazeWorker_deletingOldMaze();
@@ -107,6 +114,10 @@ public slots:
     void openMazeWorker_finished(void *maze);
     void openMazeWorker_error(QString err);
 
+    void saveMazeWorker_savingMaze();
+    void saveMazeWorker_finished();
+    void saveMazeWorker_error(QString err);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
@@ -115,6 +126,7 @@ private:
 
     QThread workerThread;
     bool creatingMaze = false;
+    bool savingMaze = false;
 
     MazeRef myMaze = 0;
     int mazeWidth = 25;

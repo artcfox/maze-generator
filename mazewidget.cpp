@@ -10,6 +10,7 @@
 #include "generatemazeworker.h"
 #include "deletemazeworker.h"
 #include "openmazeworker.h"
+#include "savemazeworker.h"
 
 #include <QPaintEvent>
 #include <QPainter>
@@ -69,7 +70,7 @@ void MazeWidget::generateMaze()
 
 void MazeWidget::openMaze()
 {
-    QString fileName= QFileDialog::getOpenFileName(this, tr("Open Maze..."), QCoreApplication::applicationDirPath(), "Maze Files (*.maze)" );
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Open Maze..."), QString(), "Maze Files (*.maze)" );
     if (fileName.isNull())
         return;
 
@@ -101,6 +102,11 @@ void MazeWidget::resetWidgetSize()
     setMaximumWidth((mazeWidth + 1) * gridSpacing * scaling);
     setMinimumHeight((mazeHeight + 1) * gridSpacing * scaling);
     setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
+}
+
+bool MazeWidget::getSavingMaze() const
+{
+    return savingMaze;
 }
 
 uint32_t MazeWidget::getSolutionLength() const
@@ -517,7 +523,8 @@ void MazeWidget::exportImage()
 
 void MazeWidget::saveMazeAs()
 {
-    QString fileName= QFileDialog::getSaveFileName(this, tr("Save Maze..."), QCoreApplication::applicationDirPath(), "Maze Files (*.maze)" );
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save Maze..."), QString(), "Maze Files (*.maze)" );
+
     if (fileName.isNull())
         return;
 
@@ -525,77 +532,20 @@ void MazeWidget::saveMazeAs()
     if (fileInfo.suffix().isEmpty())
         fileName.append(".maze");
 
-    QFile file(fileName);
-    if (!file.open(QIODevice::ReadWrite)) {
-        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be opened.").arg(fileName));
-        return;
-    }
-    BitArray baMaze, baSolution;
-    baMaze.numBits = baSolution.numBits = myMaze->totalWalls;
-    baMaze.data_length = baSolution.data_length = myMaze->totalWalls / 8 + ((myMaze->totalWalls % 8) ? 1 : 0);
+    savingMaze = true;
 
-    qint64 fileSize = sizeof(uint32_t) * (myMaze->dims_length + 2) + baMaze.data_length + baSolution.data_length;
-    if (!file.resize(fileSize)) {
-        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be resized.").arg(fileName));
-        return;
-    }
-    uchar *memory = file.map(0, fileSize);
-    if (!memory) {
-        QMessageBox::warning(this, "Error Saving Maze", QString("The file '%1' could not be mapped to memory.").arg(fileName));
-        return;
-    }
-    uint32_t dims_length = myMaze->dims_length;
-    qToLittleEndian(dims_length, memory);
-    for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
-        uint32_t dim = myMaze->dims[i];
-        qToLittleEndian(dim, memory + sizeof(uint32_t) * (i + 1));
-    }
+    SaveMazeWorker *worker = new SaveMazeWorker(myMaze, fileName);
+    worker->moveToThread(&workerThread);
+    connect(worker, SIGNAL(saveMazeWorker_error(QString)), this, SLOT(saveMazeWorker_error(QString)));
+    connect(worker, SIGNAL(saveMazeWorker_finished()), this, SLOT(saveMazeWorker_finished()));
+    connect(worker, SIGNAL(saveMazeWorker_finished()), worker, SLOT(deleteLater()));
+    connect(worker, SIGNAL(saveMazeWorker_error(QString)), worker, SLOT(deleteLater()));
 
-    baMaze.data = memory + sizeof(uint32_t) * (dims_length + 1);
-    BitArray_reset(&baMaze);
+    // For progress indicators
+    connect(worker, SIGNAL(saveMazeWorker_savingMaze()), this, SLOT(saveMazeWorker_savingMaze()));
 
-    uint32_t solutionLength = myMaze->solutionLength;
-    qToLittleEndian(solutionLength, baMaze.data + baMaze.data_length);
-
-    baSolution.data = baMaze.data + baMaze.data_length + sizeof(uint32_t);
-    BitArray_reset(&baSolution);
-
-    // Maze
-    uint32_t lotteryIndex = 0;
-    for (uint32_t position = 0; position < myMaze->totalPositions; ++position) {
-        uint32_t placeValue = 1;
-        for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
-            uint32_t valueForThisDim = (position / placeValue) % myMaze->dims[i];
-            if (valueForThisDim < myMaze->dims[i] - 1) {
-                if (BitArray_readBit(myMaze->halls[i], position)) {
-                    BitArray_setBit(&baMaze, lotteryIndex);
-//                        qDebug() << "Wall: (" << position << "," << (position + placeValue) << ")";
-//                        qDebug() << "Corresponds to Wall #" << lotteryIndex;
-                }
-                lotteryIndex++;
-            }
-            placeValue *= myMaze->dims[i];
-        }
-    }
-
-    // Solution
-    lotteryIndex = 0;
-    for (uint32_t position = 0; position < myMaze->totalPositions; ++position) {
-        uint32_t placeValue = 1;
-        for (uint32_t i = 0; i < myMaze->dims_length; ++i) {
-            uint32_t valueForThisDim = (position / placeValue) % myMaze->dims[i];
-            if (valueForThisDim < myMaze->dims[i] - 1) {
-                if (BitArray_readBit(myMaze->solution[i], position)) {
-                    BitArray_setBit(&baSolution, lotteryIndex);
-//                        qDebug() << "Solution: (" << position << "," << (position + placeValue) << ")";
-//                        qDebug() << "Corresponds to Solution #" << lotteryIndex;
-                }
-                lotteryIndex++;
-            }
-            placeValue *= myMaze->dims[i];
-        }
-    }
-    file.unmap(memory);
+    connect(this, SIGNAL(saveMazeWorker_start()), worker, SLOT(process()));
+    emit saveMazeWorker_start();
 }
 
 void MazeWidget::paintEvent(QPaintEvent *event)
@@ -701,6 +651,8 @@ void MazeWidget::openMazeWorker_loadingMaze(int width, int height)
 {
     setMazeWidth(width);
     setMazeHeight(height);
+    resetWidgetSize();
+    update();
     emit on_openMaze();
 }
 
@@ -718,6 +670,24 @@ void MazeWidget::openMazeWorker_error(QString err)
 {
     emit on_openMazeError(err);
     QMessageBox::warning(this, "Error Opening Maze", err);
+}
+
+void MazeWidget::saveMazeWorker_savingMaze()
+{
+    emit on_savingMaze();
+}
+
+void MazeWidget::saveMazeWorker_finished()
+{
+    savingMaze = false;
+    emit on_mazeSaved();
+}
+
+void MazeWidget::saveMazeWorker_error(QString err)
+{
+    savingMaze = false;
+    emit on_saveMazeError(err);
+    QMessageBox::warning(this, "Error Saving Maze", err);
 }
 
 bool MazeWidget::getShowMaze() const

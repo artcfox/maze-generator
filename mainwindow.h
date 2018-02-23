@@ -27,6 +27,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
     void on_actionShow_Solution_triggered();
 
@@ -53,8 +55,16 @@ private slots:
     void on_generatingMaze();
     void on_solvingMaze();
     void on_mazeCreated();
+
+    void on_openMaze();
     void on_openMazeError(QString err);
+
+    void on_savingMaze();
+    void on_saveMazeError(QString err);
+    void on_mazeSaved();
+
     void openMazeWorker_start();
+    void saveMazeWorker_start();
 
     void on_actionStatus_bar_triggered();
 
@@ -87,8 +97,10 @@ private:
     DragScrollArea *scrollArea;
     MazeWidget *mazeWidget;
     QLabel permanentStatus;
+    QString previousStatus;
     bool showStatusBar = true;
     void enableMenuItems(bool enabled);
+    bool reallyQuit();
 };
 
 #endif // MAINWINDOW_H

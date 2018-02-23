@@ -40,7 +40,8 @@ HEADERS  += mainwindow.h \
     generatemazeworker.h \
     deletemazeworker.h \
     dragscrollarea.h \
-    openmazeworker.h
+    openmazeworker.h \
+    savemazeworker.h
 
 FORMS    += mainwindow.ui \
     about.ui \

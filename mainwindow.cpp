@@ -13,6 +13,8 @@
 
 #include <QInputDialog>
 #include <QDebug>
+#include <QCloseEvent>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -43,7 +45,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(mazeWidget, SIGNAL(on_solvingMaze()), this, SLOT(on_solvingMaze()));
     connect(mazeWidget, SIGNAL(on_mazeCreated()), this, SLOT(on_mazeCreated()));
     connect(mazeWidget, SIGNAL(openMazeWorker_start()), this, SLOT(openMazeWorker_start()));
+    connect(mazeWidget, SIGNAL(on_openMaze()), this, SLOT(on_openMaze()));
     connect(mazeWidget, SIGNAL(on_openMazeError(QString)), this, SLOT(on_openMazeError(QString)));
+    connect(mazeWidget, SIGNAL(saveMazeWorker_start()), this, SLOT(saveMazeWorker_start()));
+    connect(mazeWidget, SIGNAL(on_savingMaze()), this, SLOT(on_savingMaze()));
+    connect(mazeWidget, SIGNAL(on_saveMazeError(QString)), this, SLOT(on_saveMazeError(QString)));
+    connect(mazeWidget, SIGNAL(on_mazeSaved()), this, SLOT(on_mazeSaved()));
 }
 
 MainWindow::~MainWindow()
@@ -85,9 +92,28 @@ void MainWindow::on_action_New_Maze_triggered()
     delete newDialog;
 }
 
+bool MainWindow::reallyQuit()
+{
+    if (mazeWidget->getSavingMaze() &&
+            QMessageBox::question(this, tr("Warning: Save currently in progress!"),
+                                  tr("If you quit before your maze file has been saved, the save file will be incomplete/corrupt.\n\nAre you sure you wish to quit?"),
+                                  QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
+        return false;
+    return true;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (reallyQuit())
+        event->accept();
+    else
+        event->ignore();
+}
+
 void MainWindow::on_actionE_xit_triggered()
 {
-    QApplication::quit();
+    if (reallyQuit())
+        QApplication::quit();
 }
 
 void MainWindow::on_action_Distance_Between_Walls_triggered()
@@ -171,7 +197,12 @@ void MainWindow::on_mazeCreated()
                      .arg(h)
                      .arg(w * h)
                      .arg(((w - 1) * h + w * (h - 1)) - (w * h - 1))
-                     .arg(s));
+                            .arg(s));
+}
+
+void MainWindow::on_openMaze()
+{
+    permanentStatus.setText("<b>Opening Maze...</b>");
 }
 
 void MainWindow::on_openMazeError(QString err)
@@ -185,10 +216,37 @@ void MainWindow::on_openMazeError(QString err)
     permanentStatus.setText("");
 }
 
+void MainWindow::on_savingMaze()
+{
+    permanentStatus.setText("<b>Saving Maze...</b>");
+}
+
+void MainWindow::on_saveMazeError(QString err)
+{
+    QApplication::restoreOverrideCursor();
+    enableMenuItems(true);
+    (void)err; // silence unused warning
+    permanentStatus.setText(previousStatus);
+}
+
+void MainWindow::on_mazeSaved()
+{
+    QApplication::restoreOverrideCursor();
+    enableMenuItems(true);
+    permanentStatus.setText(previousStatus);
+}
+
 void MainWindow::openMazeWorker_start()
 {
     enableMenuItems(false);
     QApplication::setOverrideCursor(Qt::BusyCursor);
+}
+
+void MainWindow::saveMazeWorker_start()
+{
+    enableMenuItems(false);
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    previousStatus = permanentStatus.text();
 }
 
 void MainWindow::on_actionStatus_bar_triggered()
