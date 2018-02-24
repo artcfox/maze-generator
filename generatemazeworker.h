@@ -10,6 +10,7 @@
 #define GENERATEMAZEWORKER_H
 
 #include <QObject>
+#include <QThread>
 #include "Maze.h"
 
 class GenerateMazeWorker : public QObject
@@ -37,6 +38,9 @@ public slots:
             Maze_delete(myMaze);
             emit generateMazeWorker_allocatingMemory();
             myMaze = Maze_create(dims, 2, (MazeCreateFlags)(mcfOutputMaze | mcfOutputSolution /*| mcfMultipleSolves*/));
+            int idealThreads = QThread::idealThreadCount();
+            if (idealThreads > 0)
+                Maze_setCores(myMaze, idealThreads);
         }
 
         emit generateMazeWorker_generatingMaze();

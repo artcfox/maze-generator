@@ -10,6 +10,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+// For maximum portability, this file may be compiled as C++, or C, and it
+// will automatically switch between using pthreads or std::thread.
+
+#ifdef __cplusplus
+#include <thread>
+#else
+#include <pthread.h>
+#endif
+
 #include "Maze.h"
 
 MazeRef Maze_create(uint32_t *dims, uint32_t length, MazeCreateFlags flags) {
@@ -27,6 +37,7 @@ MazeRef Maze_create(uint32_t *dims, uint32_t length, MazeCreateFlags flags) {
     m->sets = NULL;
     m->needsNeighborCountRefreshed = false;
     m->solutionLength = m->start = m->end = 0;
+    m->cores = 1; // default to single core solves; for multi-core solves, call Maze_setCores() after calling Maze_create()
 
     for (uint32_t i = 0; i < length; ++i)
         m->totalPositions *= dims[i];
@@ -88,6 +99,11 @@ void Maze_delete(MazeRef m) {
         free(m->solution);
     }
     free(m);
+}
+
+void Maze_setCores(MazeRef m, uint32_t value) {
+    if (value > 0 && value <= 1024)
+        m->cores = value;
 }
 
 void Maze_generate(MazeRef m) {
@@ -171,6 +187,40 @@ void Maze_generate(MazeRef m) {
     }
 }
 
+typedef struct _DeadEndFillInfo {
+    MazeRef m;
+    uint32_t startWall;
+    uint32_t endWall;
+    uint32_t knockedOutWalls;
+} DeadEndFillInfo;
+
+void *deadEndFillThreaded(void *arg) {
+    DeadEndFillInfo *defi = (DeadEndFillInfo*)arg;
+
+    uint32_t knockedOutWalls = defi->endWall;
+    while (true) {
+        bool filledDeadEnd = false;
+        for (uint32_t i = defi->startWall; i < knockedOutWalls; ++i) {
+            const uint32_t cell1 = defi->m->lottery[i].cell1;
+            const uint32_t cell2 = defi->m->lottery[i].cell2;
+            if ((defi->m->neighborCount[cell1] == 1 && cell1 != defi->m->start && cell1 != defi->m->end) || (defi->m->neighborCount[cell2] == 1 && cell2 != defi->m->start && cell2 != defi->m->end)) {
+                __atomic_fetch_sub(&defi->m->neighborCount[cell1], 1, __ATOMIC_SEQ_CST); // defi->m->neighborCount[cell1]--;
+                __atomic_fetch_sub(&defi->m->neighborCount[cell2], 1, __ATOMIC_SEQ_CST); // defi->m->neighborCount[cell2]--;
+                filledDeadEnd = true;
+                Wall tmp = defi->m->lottery[knockedOutWalls - 1]; // swap to the end of the knocked out wall part of the list
+                defi->m->lottery[knockedOutWalls - 1] = defi->m->lottery[i];
+                defi->m->lottery[i] = tmp;
+                knockedOutWalls--;
+            }
+        }
+        if (!filledDeadEnd)
+            break;
+    }
+    defi->knockedOutWalls = knockedOutWalls - defi->startWall;
+
+    return 0;
+}
+
 void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
     if (!(m->createFlags & mcfOutputSolution)) {
         fprintf(stderr, "Error: Maze_solve cannot be called without setting mcfOutputSolution in Maze_create\n");
@@ -193,27 +243,108 @@ void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
     m->start = start;
     m->end = end;
 
-    uint32_t knockedOutWalls = m->totalPositions - 1;
-    while (true) {
-        bool filledDeadEnd = false;
-        for (uint32_t i = 0; i < knockedOutWalls; ++i) {
-            const uint32_t cell1 = m->lottery[i].cell1;
-            const uint32_t cell2 = m->lottery[i].cell2;
-            if ((m->neighborCount[cell1] == 1 && cell1 != start && cell1 != end) || (m->neighborCount[cell2] == 1 && cell2 != start && cell2 != end)) {
-                m->neighborCount[cell1]--;
-                m->neighborCount[cell2]--;
-                filledDeadEnd = true;
-                Wall tmp = m->lottery[knockedOutWalls - 1]; // swap to the end of the knocked out wall part of the list
-                m->lottery[knockedOutWalls - 1] = m->lottery[i];
-                m->lottery[i] = tmp;
-                knockedOutWalls--;
+    if (m->cores > 1) {
+        // For a parallel solve, we want the list of walls sorted, so when it gets distributed among threads,
+        // each thread gets to work on a contiguous section of the maze across all of its dimensions.
+        // The fastest way I can think of to get the list of walls sorted in-place is simply to read (in
+        // sorted order) from the halls[] bit arrays that the Maze_generate() function creates, and use that
+        // to re-write the beginning of the lottery[] array (up to knockedOutWalls), causing them to all be
+        // written in sorted order. This has the added benefit of not requiring any extra memory.
+
+        uint32_t knockedOutWallsIndex = 0;
+        for (uint32_t position = 0; position < m->totalPositions; ++position) {
+            uint32_t placeValue = 1;
+            for (uint32_t i = 0; i < m->dims_length; ++i) {
+                uint32_t valueForThisDim = (position / placeValue) % m->dims[i];
+                if (valueForThisDim < m->dims[i] - 1) {
+                    if (BitArray_readBit(m->halls[i], position)) {
+                        m->lottery[knockedOutWallsIndex].cell1 = position;
+                        m->lottery[knockedOutWallsIndex].cell2 = position + placeValue;
+                        knockedOutWallsIndex++;
+                    }
+                }
+                placeValue *= m->dims[i];
             }
         }
-        if (!filledDeadEnd)
-            break;
+
+        DeadEndFillInfo defi[m->cores];
+        for (uint32_t i = 0; i < m->cores; ++i) {
+            defi[i].m = m;
+            defi[i].startWall = i * (m->totalPositions - 1) / m->cores;
+            defi[i].endWall = (i + 1) * (m->totalPositions - 1) / m->cores;
+            defi[i].knockedOutWalls = 0;
+        }
+
+#ifdef __cplusplus
+        std::thread t[m->cores];
+        for (uint32_t i = 0; i < m->cores; ++i)
+            t[i] = std::thread(deadEndFillThreaded, (void*)&defi[i]);
+        for (uint32_t i = 0; i < m->cores; ++i)
+            t[i].join();
+#else
+        pthread_t t[m->cores];
+        for (uint32_t i = 0; i < m->cores; ++i) {
+            int rc = pthread_create(&t[i], NULL, deadEndFillThreaded, (void*)&defi[i]);
+            if (rc) {
+                fprintf(stderr, "Error: pthread_create() returned code %d\n", rc);
+                exit(-1);
+            }
+        }
+        for (uint32_t i = 0; i < m->cores; ++i) {
+            void *status;
+            int rc = pthread_join(t[i], &status);
+            if (rc) {
+                fprintf(stderr, "Error: pthread_join() returned code %d\n", rc);
+                exit(-1);
+            }
+        }
+#endif
+        uint32_t knockedOutWalls = 0;
+        for (uint32_t i = 0; i < m->cores; ++i)
+            knockedOutWalls += defi[i].knockedOutWalls;
+
+        // Reorder the lottery, so every sub-solution is joined at the beginning
+        uint32_t writeAt = defi[0].startWall + defi[0].knockedOutWalls;
+        for (uint32_t i = 1; i < m->cores; ++i) {
+            for (uint32_t j = 0; j < defi[i].knockedOutWalls; ++j) {
+                Wall tmp = m->lottery[writeAt];
+                m->lottery[writeAt] = m->lottery[defi[i].startWall + j];
+                m->lottery[defi[i].startWall + j] = tmp;
+                writeAt++;
+            }
+        }
+
+        // Do one final pass after each thread has finished doing its work to catch paths that crossed thread boundaries
+        DeadEndFillInfo finalPass;
+        finalPass.m = m;
+        finalPass.startWall = 0;
+        finalPass.endWall = knockedOutWalls;
+        finalPass.knockedOutWalls = 0;
+        deadEndFillThreaded(&finalPass);
+        m->solutionLength = knockedOutWalls - (knockedOutWalls - finalPass.knockedOutWalls);
+    } else {
+        uint32_t knockedOutWalls = m->totalPositions - 1;
+        while (true) {
+            bool filledDeadEnd = false;
+            for (uint32_t i = 0; i < knockedOutWalls; ++i) {
+                const uint32_t cell1 = m->lottery[i].cell1;
+                const uint32_t cell2 = m->lottery[i].cell2;
+                if ((m->neighborCount[cell1] == 1 && cell1 != start && cell1 != end) || (m->neighborCount[cell2] == 1 && cell2 != start && cell2 != end)) {
+                    m->neighborCount[cell1]--;
+                    m->neighborCount[cell2]--;
+                    filledDeadEnd = true;
+                    Wall tmp = m->lottery[knockedOutWalls - 1]; // swap to the end of the knocked out wall part of the list
+                    m->lottery[knockedOutWalls - 1] = m->lottery[i];
+                    m->lottery[i] = tmp;
+                    knockedOutWalls--;
+                }
+            }
+            if (!filledDeadEnd)
+                break;
+        }
+        m->solutionLength = knockedOutWalls;
     }
 
-    m->solutionLength = knockedOutWalls;
     m->needsNeighborCountRefreshed = true;
 
     if (m->createFlags & mcfOutputSolution) {

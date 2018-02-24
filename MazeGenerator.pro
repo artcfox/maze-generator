@@ -26,10 +26,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    Maze.c \
     mazewidget.cpp \
     newdialog.cpp \
-    dragscrollarea.cpp
+    dragscrollarea.cpp \
+    Maze.c
 
 HEADERS  += mainwindow.h \
     Maze.h \
@@ -46,3 +46,6 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui \
     about.ui \
     newdialog.ui
+
+DISTFILES += \
+    README

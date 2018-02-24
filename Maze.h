@@ -48,12 +48,16 @@ typedef struct _Maze {
     uint32_t solutionLength;
     uint32_t start;
     uint32_t end;
+
+    // The number of cores to use
+    uint32_t cores;
 } Maze;
 typedef Maze *MazeRef;
 
 MazeRef Maze_create(uint32_t *dims, uint32_t length, MazeCreateFlags flags);
 void Maze_delete(MazeRef m);
 
+void Maze_setCores(MazeRef m, uint32_t cores);
 void Maze_generate(MazeRef m);
 void Maze_solve(MazeRef m, uint32_t start, uint32_t end);
 
