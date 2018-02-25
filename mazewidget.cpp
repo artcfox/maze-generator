@@ -104,6 +104,26 @@ void MazeWidget::resetWidgetSize()
     setMaximumHeight((mazeHeight + 1) * gridSpacing * scaling);
 }
 
+bool MazeWidget::getDebug() const
+{
+    return debug;
+}
+
+void MazeWidget::setDebug(bool value)
+{
+    debug = value;
+}
+
+uint32_t MazeWidget::getHighlight() const
+{
+    return highlight;
+}
+
+void MazeWidget::setHighlight(const uint32_t &value)
+{
+    highlight = value;
+}
+
 bool MazeWidget::getSavingMaze() const
 {
     return savingMaze;
@@ -356,6 +376,44 @@ void MazeWidget::paintMazeWalls(QPainter *painter, const QRect &rect)
     painter->drawPath(mazePath);
 }
 
+void MazeWidget::paintDebug(QPainter *painter, const QRect &rect)
+{
+    QPainterPath debugPath;
+
+    // Convert from view coordinates into maze coordinates
+    int startX = ((rect.left()) / gridSpacing) - 1 - 1;
+    if (startX < 0)
+        startX = 0;
+
+    int startY = ((rect.top()) / gridSpacing) - 1 - 1;
+    if (startY < 0)
+        startY = 0;
+
+    int endX = (((rect.right())) / gridSpacing) + 1;
+    if (endX > mazeWidth)
+        endX = mazeWidth;
+
+    int endY = (((rect.bottom())) / gridSpacing) + 1;
+    if (endY > mazeHeight)
+        endY = mazeHeight;
+
+    // Draw a circle highlighting a position set with the debug menu
+    for (int x = startX; x < endX; ++x) {
+        for (int y = startY; y < endY; ++y) {
+            uint32_t position = y * mazeWidth + x; // convert (x, y) coordinates into a scalar position
+            if (position == highlight)
+                debugPath.addEllipse(QPoint( ((x + 1) * gridSpacing), ((y + 1) * gridSpacing) ), gridSpacing / 4, gridSpacing / 4);
+        }
+    }
+
+    QPen debugPen(Qt::blue);
+    QBrush debugBrush(Qt::yellow);
+    debugPen.setWidth(2);
+    painter->setPen(debugPen);
+    painter->setBrush(debugBrush);
+    painter->drawPath(debugPath);
+}
+
 void MazeWidget::paintSolution(QPainter *painter, const QRect &rect)
 {
     if (creatingMaze) // make safe for something external to call
@@ -575,6 +633,11 @@ void MazeWidget::paintEvent(QPaintEvent *event)
             i.toFront();
             while (i.hasNext())
                 paintSolution(&painter, scaleRect(i.next()));
+        }
+        if (debug) {
+            i.toFront();
+            while (i.hasNext())
+                paintDebug(&painter, scaleRect(i.next()));
         }
     }
 

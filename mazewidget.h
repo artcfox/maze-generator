@@ -57,6 +57,7 @@ public:
     void paintBackground(QPainter *painter, const QRect &rect);
     void paintMazePaths(QPainter *painter, const QRect &rect);
     void paintSolution(QPainter *painter, const QRect &rect);
+    void paintDebug(QPainter *painter, const QRect &rect);
 
     void printMaze();
     void exportImage();
@@ -77,6 +78,13 @@ public:
     uint32_t getSolutionLength() const;
 
     bool getSavingMaze() const;
+
+    void setHighlight(const uint32_t &value);
+
+    uint32_t getHighlight() const;
+
+    bool getDebug() const;
+    void setDebug(bool value);
 
 signals:
     void generateMazeWorker_start();
@@ -142,6 +150,8 @@ private:
     bool roundCaps = true;
     bool antialiased = false;
     bool inverse = false;
+    bool debug = false;
+    uint32_t highlight = 0;
 
     qreal scaling = 1.0;
     QRect scaleRect(const QRect &rect);

@@ -92,6 +92,8 @@ private slots:
 
     void on_action_Open_Maze_triggered();
 
+    void on_actionHighlight_Cell_triggered();
+
 private:
     Ui::MainWindow *ui;
     DragScrollArea *scrollArea;

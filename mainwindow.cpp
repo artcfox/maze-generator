@@ -375,3 +375,22 @@ void MainWindow::on_action_Open_Maze_triggered()
 {
     mazeWidget->openMaze();
 }
+
+void MainWindow::on_actionHighlight_Cell_triggered()
+{
+    bool ok;
+    int value = QInputDialog::getInt(this, tr("Highlight Cell"), tr("Cell:"), mazeWidget->getHighlight(), -1, mazeWidget->getMazeWidth() * mazeWidget->getMazeHeight() - 1, 1, &ok);
+    if (ok) {
+        if (value == -1) {
+            mazeWidget->setDebug(false);
+            mazeWidget->update();
+            return;
+        }
+        uint32_t x = value % mazeWidget->getMazeWidth();
+        uint32_t y = value / mazeWidget->getMazeWidth();
+        scrollArea->ensureVisible(((x + 1) * mazeWidget->getGridSpacing()), ((y + 1) * mazeWidget->getGridSpacing()), scrollArea->viewport()->width() / 2, scrollArea->viewport()->height() / 2);
+        mazeWidget->setDebug(true);
+        mazeWidget->setHighlight(value);
+        mazeWidget->update();
+    }
+}

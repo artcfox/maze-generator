@@ -70,10 +70,23 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
+    <widget class="QMenu" name="menu_Debug">
+     <property name="title">
+      <string>&amp;Debug</string>
+     </property>
+    </widget>
     <addaction name="action_About"/>
+    <addaction name="menu_Debug"/>
+   </widget>
+   <widget class="QMenu" name="menu_Debug_2">
+    <property name="title">
+     <string>&amp;Debug</string>
+    </property>
+    <addaction name="actionHighlight_Cell"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuView"/>
+   <addaction name="menu_Debug_2"/>
    <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -274,6 +287,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionHighlight_Cell">
+   <property name="text">
+    <string>Highlight &amp;Cell...</string>
    </property>
   </action>
  </widget>
