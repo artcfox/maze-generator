@@ -268,10 +268,11 @@ void Maze_solve(MazeRef m, uint32_t start, uint32_t end) {
         }
 
         DeadEndFillInfo defi[m->cores];
+        uint32_t chunkSize = (m->totalPositions - 1) / m->cores; // ensure we don't rollover
         for (uint32_t i = 0; i < m->cores; ++i) {
             defi[i].m = m;
-            defi[i].startWall = i * (m->totalPositions - 1) / m->cores;
-            defi[i].endWall = (i + 1) * (m->totalPositions - 1) / m->cores;
+            defi[i].startWall = i * chunkSize;
+            defi[i].endWall = (i == m->cores - 1) ? (m->totalPositions - 1) : (i + 1) * chunkSize;
             defi[i].knockedOutWalls = 0;
         }
 
