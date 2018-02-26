@@ -70,13 +70,7 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
-    <widget class="QMenu" name="menu_Debug">
-     <property name="title">
-      <string>&amp;Debug</string>
-     </property>
-    </widget>
     <addaction name="action_About"/>
-    <addaction name="menu_Debug"/>
    </widget>
    <widget class="QMenu" name="menu_Debug_2">
     <property name="title">
