@@ -18,7 +18,7 @@ the current zoom level, print them out on paper, or to a PDF file.
 To build under Debian GNU/Linux:
 
 sudo apt-get update
-sudo apt-get install build-essential qtcreator qt5-default
+sudo apt-get install build-essential qtcreator qtbase5-dev
 git clone https://github.com/artcfox/maze-generator
 cd maze-generator
 qtcreator MazeGenerator.pro

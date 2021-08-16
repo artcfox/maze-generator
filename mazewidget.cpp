@@ -33,6 +33,7 @@ MazeWidget::MazeWidget(QWidget *parent) : QWidget(parent)
 
 MazeWidget::~MazeWidget()
 {
+    workerThread.exit();
     // Ensure free() gets called from the same thread that malloc did, though the app may exit before this can happen
     DeleteMazeWorker *worker = new DeleteMazeWorker(myMaze);
     worker->moveToThread(&workerThread);
