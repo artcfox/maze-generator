@@ -38,7 +38,11 @@ public slots:
             Maze_delete(myMaze);
             emit generateMazeWorker_allocatingMemory();
             myMaze = Maze_create(dims, 2, (MazeCreateFlags)(mcfOutputMaze | mcfOutputSolution /*| mcfMultipleSolves*/));
+#ifdef Q_OS_WASM
+            int idealThreads = 2;
+#else
             int idealThreads = QThread::idealThreadCount();
+#endif
             if (idealThreads > 0)
                 Maze_setCores(myMaze, idealThreads);
         }

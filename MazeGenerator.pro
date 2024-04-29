@@ -4,8 +4,12 @@
 #
 #-------------------------------------------------
 
-QT       += core gui printsupport
-QMAKE_LFLAGS = -no-pie
+QT += core gui printsupport
+
+emscripten {
+    QMAKE_LFLAGS +=-sASYNCIFY
+    QMAKE_WASM_PTHREAD_POOL_SIZE = 4
+}
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -25,7 +29,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
+    mainwindow.cpp \
     mazewidget.cpp \
     newdialog.cpp \
     dragscrollarea.cpp \

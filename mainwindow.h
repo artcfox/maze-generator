@@ -10,10 +10,12 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QDialog>
 #include "dragscrollarea.h"
 #include <QScrollBar>
 #include <QLabel>
 #include "mazewidget.h"
+#include "newdialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -94,8 +96,13 @@ private slots:
 
     void on_actionHighlight_Cell_triggered();
 
+    void on_About_finished(int result);
+    void on_newDialog_finished(int result);
+
 private:
     Ui::MainWindow *ui;
+    NewDialog *newDialog;
+    QDialog *about;
     DragScrollArea *scrollArea;
     MazeWidget *mazeWidget;
     QLabel permanentStatus;

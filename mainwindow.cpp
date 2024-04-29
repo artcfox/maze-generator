@@ -80,15 +80,21 @@ void MainWindow::on_action_Round_Caps_triggered()
 
 void MainWindow::on_action_New_Maze_triggered()
 {
-    NewDialog *newDialog = new NewDialog(this, mazeWidget->getMazeWidth(), mazeWidget->getMazeHeight());
-    if (QDialog::Accepted == newDialog->exec()) {
+    newDialog = new NewDialog(this, mazeWidget->getMazeWidth(), mazeWidget->getMazeHeight());
+
+    connect(newDialog, SIGNAL(finished(int)), this, SLOT(on_newDialog_finished(int)));
+    newDialog->open();
+}
+
+void MainWindow::on_newDialog_finished(int result)
+{
+    if (QDialog::Accepted == result) {
         mazeWidget->setMazeWidth(newDialog->getWidth());
         mazeWidget->setMazeHeight(newDialog->getHeight());
         mazeWidget->generateMaze();
         enableMenuItems(false);
         QApplication::setOverrideCursor(Qt::BusyCursor);
     }
-
     delete newDialog;
 }
 
@@ -154,10 +160,16 @@ void MainWindow::on_action_Default_Maze_Style_triggered()
 
 void MainWindow::on_action_About_triggered()
 {
-    QDialog *about = new QDialog(this, Qt::Dialog);
+    about = new QDialog(this, Qt::Dialog);
     Ui_Dialog aboutUi;
     aboutUi.setupUi(about);
-    about->exec();
+    connect(about, SIGNAL(finished(int)), this, SLOT(on_About_finished(int)));
+    about->open();
+}
+
+void MainWindow::on_About_finished(int result)
+{
+    qDebug() << "About finished: " << result;
     delete about;
 }
 

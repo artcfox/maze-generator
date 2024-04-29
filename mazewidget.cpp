@@ -33,7 +33,6 @@ MazeWidget::MazeWidget(QWidget *parent) : QWidget(parent)
 
 MazeWidget::~MazeWidget()
 {
-    workerThread.exit();
     // Ensure free() gets called from the same thread that malloc did, though the app may exit before this can happen
     DeleteMazeWorker *worker = new DeleteMazeWorker(myMaze);
     worker->moveToThread(&workerThread);
@@ -42,6 +41,9 @@ MazeWidget::~MazeWidget()
     connect(worker, SIGNAL(deleteMazeWorker_finished(void*)), worker, SLOT(deleteLater()));
     connect(this, SIGNAL(deleteMazeWorker_start()), worker, SLOT(process()));
     emit deleteMazeWorker_start();
+    workerThread.quit();
+    workerThread.requestInterruption();
+    workerThread.wait();
 }
 
 void MazeWidget::generateMaze()
@@ -622,23 +624,17 @@ void MazeWidget::paintEvent(QPaintEvent *event)
         painter.setBrush(brush);
         painter.drawRect(scaleRect(event->rect()));
     } else {
-        QVectorIterator<QRect> i(event->region().rects());
-        if (showMaze) {
-            while (i.hasNext())
+        for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++) {
+            if (showMaze) {
                 if (inverse)
-                    paintMazePaths(&painter, scaleRect(i.next()));
+                    paintMazePaths(&painter, scaleRect(*i));
                 else
-                    paintMazeWalls(&painter, scaleRect(i.next()));
-        }
-        if (showSolution) {
-            i.toFront();
-            while (i.hasNext())
-                paintSolution(&painter, scaleRect(i.next()));
-        }
-        if (debug) {
-            i.toFront();
-            while (i.hasNext())
-                paintDebug(&painter, scaleRect(i.next()));
+                    paintMazeWalls(&painter, scaleRect(*i));
+            }
+            if (showSolution)
+                paintSolution(&painter, scaleRect(*i));
+            if (debug)
+                paintDebug(&painter, scaleRect(*i));
         }
     }
 
