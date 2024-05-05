@@ -39,18 +39,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->statusBar->addPermanentWidget(&permanentStatus, 0);
 
-    connect(mazeWidget, SIGNAL(on_deletingOldMaze()), this, SLOT(on_deletingOldMaze()));
-    connect(mazeWidget, SIGNAL(on_allocatingMemory()), this, SLOT(on_allocatingMemory()));
-    connect(mazeWidget, SIGNAL(on_generatingMaze()), this, SLOT(on_generatingMaze()));
-    connect(mazeWidget, SIGNAL(on_solvingMaze()), this, SLOT(on_solvingMaze()));
-    connect(mazeWidget, SIGNAL(on_mazeCreated()), this, SLOT(on_mazeCreated()));
-    connect(mazeWidget, SIGNAL(openMazeWorker_start()), this, SLOT(openMazeWorker_start()));
-    connect(mazeWidget, SIGNAL(on_openMaze()), this, SLOT(on_openMaze()));
-    connect(mazeWidget, SIGNAL(on_openMazeError(QString)), this, SLOT(on_openMazeError(QString)));
-    connect(mazeWidget, SIGNAL(saveMazeWorker_start()), this, SLOT(saveMazeWorker_start()));
-    connect(mazeWidget, SIGNAL(on_savingMaze()), this, SLOT(on_savingMaze()));
-    connect(mazeWidget, SIGNAL(on_saveMazeError(QString)), this, SLOT(on_saveMazeError(QString)));
-    connect(mazeWidget, SIGNAL(on_mazeSaved()), this, SLOT(on_mazeSaved()));
+    connect(mazeWidget, &MazeWidget::on_deletingOldMaze, this, &MainWindow::on_deletingOldMaze);
+    connect(mazeWidget, &MazeWidget::on_allocatingMemory, this, &MainWindow::on_allocatingMemory);
+    connect(mazeWidget, &MazeWidget::on_generatingMaze, this, &MainWindow::on_generatingMaze);
+    connect(mazeWidget, &MazeWidget::on_solvingMaze, this, &MainWindow::on_solvingMaze);
+    connect(mazeWidget, &MazeWidget::on_mazeCreated, this, &MainWindow::on_mazeCreated);
+    connect(mazeWidget, &MazeWidget::openMazeWorker_start, this, &MainWindow::openMazeWorker_start);
+    connect(mazeWidget, &MazeWidget::on_openMaze, this, &MainWindow::on_openMaze);
+    connect(mazeWidget, &MazeWidget::on_openMazeError, this, &MainWindow::on_openMazeError);
+    connect(mazeWidget, &MazeWidget::saveMazeWorker_start, this, &MainWindow::saveMazeWorker_start);
+    connect(mazeWidget, &MazeWidget::on_savingMaze, this, &MainWindow::on_savingMaze);
+    connect(mazeWidget, &MazeWidget::on_saveMazeError, this, &MainWindow::on_saveMazeError);
+    connect(mazeWidget, &MazeWidget::on_mazeSaved, this, &MainWindow::on_mazeSaved);
 }
 
 MainWindow::~MainWindow()
@@ -82,11 +82,11 @@ void MainWindow::on_action_New_Maze_triggered()
 {
     newDialog = new NewDialog(this, mazeWidget->getMazeWidth(), mazeWidget->getMazeHeight());
 
-    connect(newDialog, SIGNAL(finished(int)), this, SLOT(on_newDialog_finished(int)));
+    connect(newDialog, &NewDialog::finished, this, &MainWindow::newDialogFinished);
     newDialog->open();
 }
 
-void MainWindow::on_newDialog_finished(int result)
+void MainWindow::newDialogFinished(int result)
 {
     if (QDialog::Accepted == result) {
         mazeWidget->setMazeWidth(newDialog->getWidth());
@@ -163,11 +163,11 @@ void MainWindow::on_action_About_triggered()
     about = new QDialog(this, Qt::Dialog);
     Ui_Dialog aboutUi;
     aboutUi.setupUi(about);
-    connect(about, SIGNAL(finished(int)), this, SLOT(on_About_finished(int)));
+    connect(about, &QDialog::finished, this, &MainWindow::aboutDialogFinished);
     about->open();
 }
 
-void MainWindow::on_About_finished(int result)
+void MainWindow::aboutDialogFinished(int result)
 {
     qDebug() << "About finished: " << result;
     delete about;

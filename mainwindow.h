@@ -96,8 +96,8 @@ private slots:
 
     void on_actionHighlight_Cell_triggered();
 
-    void on_About_finished(int result);
-    void on_newDialog_finished(int result);
+    void aboutDialogFinished(int result);
+    void newDialogFinished(int result);
 
 private:
     Ui::MainWindow *ui;

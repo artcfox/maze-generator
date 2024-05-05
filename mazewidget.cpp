@@ -36,10 +36,10 @@ MazeWidget::~MazeWidget()
     // Ensure free() gets called from the same thread that malloc did, though the app may exit before this can happen
     DeleteMazeWorker *worker = new DeleteMazeWorker(myMaze);
     worker->moveToThread(&workerThread);
-    connect(worker, SIGNAL(deleteMazeWorker_error(QString)), this, SLOT(deleteMazeWorker_error(QString)));
-    connect(worker, SIGNAL(deleteMazeWorker_finished(void*)), this, SLOT(deleteMazeWorker_finished(void*)));
-    connect(worker, SIGNAL(deleteMazeWorker_finished(void*)), worker, SLOT(deleteLater()));
-    connect(this, SIGNAL(deleteMazeWorker_start()), worker, SLOT(process()));
+    connect(worker, &DeleteMazeWorker::deleteMazeWorker_error, this, &MazeWidget::deleteMazeWorker_error);
+    connect(worker, &DeleteMazeWorker::deleteMazeWorker_finished, this, &MazeWidget::deleteMazeWorker_finished);
+    connect(worker, &DeleteMazeWorker::deleteMazeWorker_finished, worker, &DeleteMazeWorker::deleteLater);
+    connect(this, &MazeWidget::deleteMazeWorker_start, worker, &DeleteMazeWorker::process);
     emit deleteMazeWorker_start();
     workerThread.quit();
     workerThread.requestInterruption();
@@ -54,17 +54,17 @@ void MazeWidget::generateMaze()
     myMaze = 0; // clear our copy
     solutionLength = 0;
     worker->moveToThread(&workerThread);
-    connect(worker, SIGNAL(generateMazeWorker_error(QString)), this, SLOT(generateMazeWorker_error(QString)));
-    connect(worker, SIGNAL(generateMazeWorker_finished(void*)), this, SLOT(generateMazeWorker_finished(void*)));
-    connect(worker, SIGNAL(generateMazeWorker_finished(void*)), worker, SLOT(deleteLater()));
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_error, this, &MazeWidget::generateMazeWorker_error);
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_finished, this, &MazeWidget::generateMazeWorker_finished);
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_finished, worker, &GenerateMazeWorker::deleteLater);
 
     // For progress indicators
-    connect(worker, SIGNAL(generateMazeWorker_deletingOldMaze()), this, SLOT(generateMazeWorker_deletingOldMaze()));
-    connect(worker, SIGNAL(generateMazeWorker_allocatingMemory()), this, SLOT(generateMazeWorker_allocatingMemory()));
-    connect(worker, SIGNAL(generateMazeWorker_generatingMaze()), this, SLOT(generateMazeWorker_generatingMaze()));
-    connect(worker, SIGNAL(generateMazeWorker_solvingMaze()), this, SLOT(generateMazeWorker_solvingMaze()));
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_deletingOldMaze, this, &MazeWidget::generateMazeWorker_deletingOldMaze);
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_allocatingMemory, this, &MazeWidget::generateMazeWorker_allocatingMemory);
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_generatingMaze, this, &MazeWidget::generateMazeWorker_generatingMaze);
+    connect(worker, &GenerateMazeWorker::generateMazeWorker_solvingMaze, this, &MazeWidget::generateMazeWorker_solvingMaze);
 
-    connect(this, SIGNAL(generateMazeWorker_start()), worker, SLOT(process()));
+    connect(this, &MazeWidget::generateMazeWorker_start, worker, &GenerateMazeWorker::process);
     emit generateMazeWorker_start();
 
     resetWidgetSize(); // pre-maturely resize the widget to the expected size
@@ -83,17 +83,17 @@ void MazeWidget::openMaze()
     myMaze = 0; // clear our copy
     solutionLength = 0;
     worker->moveToThread(&workerThread);
-    connect(worker, SIGNAL(openMazeWorker_error(QString)), this, SLOT(openMazeWorker_error(QString)));
-    connect(worker, SIGNAL(openMazeWorker_finished(void*)), this, SLOT(openMazeWorker_finished(void*)));
-    connect(worker, SIGNAL(openMazeWorker_finished(void*)), worker, SLOT(deleteLater()));
-    connect(worker, SIGNAL(openMazeWorker_error(QString)), worker, SLOT(deleteLater()));
+    connect(worker, &OpenMazeWorker::openMazeWorker_error, this, &MazeWidget::openMazeWorker_error);
+    connect(worker, &OpenMazeWorker::openMazeWorker_finished, this, &MazeWidget::openMazeWorker_finished);
+    connect(worker, &OpenMazeWorker::openMazeWorker_finished, worker, &OpenMazeWorker::deleteLater);
+    connect(worker, &OpenMazeWorker::openMazeWorker_error, worker, &OpenMazeWorker::deleteLater);
 
     // For progress indicators
-    connect(worker, SIGNAL(openMazeWorker_deletingOldMaze()), this, SLOT(openMazeWorker_deletingOldMaze()));
-    connect(worker, SIGNAL(openMazeWorker_allocatingMemory()), this, SLOT(openMazeWorker_allocatingMemory()));
-    connect(worker, SIGNAL(openMazeWorker_loadingMaze(int, int)), this, SLOT(openMazeWorker_loadingMaze(int, int)));
+    connect(worker, &OpenMazeWorker::openMazeWorker_deletingOldMaze, this, &MazeWidget::openMazeWorker_deletingOldMaze);
+    connect(worker, &OpenMazeWorker::openMazeWorker_allocatingMemory, this, &MazeWidget::openMazeWorker_allocatingMemory);
+    connect(worker, &OpenMazeWorker::openMazeWorker_loadingMaze, this, &MazeWidget::openMazeWorker_loadingMaze);
 
-    connect(this, SIGNAL(openMazeWorker_start()), worker, SLOT(process()));
+    connect(this, &MazeWidget::openMazeWorker_start, worker, &OpenMazeWorker::process);
     emit openMazeWorker_start();
 
     update();
@@ -550,7 +550,7 @@ void MazeWidget::exportImage()
         QImage image(((mazeWidth + 1) * gridSpacing) * scaling, ((mazeHeight + 1) * gridSpacing) * scaling, QImage::Format_ARGB32_Premultiplied);
         QPainter painter;
         if (!painter.begin(&image)) {
-            QMessageBox::warning(this, "Error Exporting Image", "There was an error exporting the image; the maze is most likely too large.\n\nYou may configure its rendered size using the View > Advanced menu, or create a new maze with smaller dimensions.");
+            QMessageBox::warning(this, "Error Exporting Image", "There was an error exporting the image; the maze is most likely too large.\n\nYou may configure its rendered size using the View > Maze Styles menu, or create a new maze with smaller dimensions.");
             return;
         }
 
@@ -597,15 +597,15 @@ void MazeWidget::saveMazeAs()
 
     SaveMazeWorker *worker = new SaveMazeWorker(myMaze, fileName);
     worker->moveToThread(&workerThread);
-    connect(worker, SIGNAL(saveMazeWorker_error(QString)), this, SLOT(saveMazeWorker_error(QString)));
-    connect(worker, SIGNAL(saveMazeWorker_finished()), this, SLOT(saveMazeWorker_finished()));
-    connect(worker, SIGNAL(saveMazeWorker_finished()), worker, SLOT(deleteLater()));
-    connect(worker, SIGNAL(saveMazeWorker_error(QString)), worker, SLOT(deleteLater()));
+    connect(worker, &SaveMazeWorker::saveMazeWorker_error, this, &MazeWidget::saveMazeWorker_error);
+    connect(worker, &SaveMazeWorker::saveMazeWorker_finished, this, &MazeWidget::saveMazeWorker_finished);
+    connect(worker, &SaveMazeWorker::saveMazeWorker_finished, worker, &SaveMazeWorker::deleteLater);
+    connect(worker, &SaveMazeWorker::saveMazeWorker_error, worker, &SaveMazeWorker::deleteLater);
 
     // For progress indicators
-    connect(worker, SIGNAL(saveMazeWorker_savingMaze()), this, SLOT(saveMazeWorker_savingMaze()));
+    connect(worker, &SaveMazeWorker::saveMazeWorker_savingMaze, this, &MazeWidget::saveMazeWorker_savingMaze);
 
-    connect(this, SIGNAL(saveMazeWorker_start()), worker, SLOT(process()));
+    connect(this, &MazeWidget::saveMazeWorker_start, worker, &SaveMazeWorker::process);
     emit saveMazeWorker_start();
 }
 
