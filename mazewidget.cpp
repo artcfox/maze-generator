@@ -2,7 +2,7 @@
  *  mazewidget.cpp
  *  MazeGenerator
  *
- *  Copyright 2018 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2018-2024 Matthew T. Pandina. All rights reserved.
  *
  */
 
@@ -684,7 +684,8 @@ void MazeWidget::generateMazeWorker_finished(void *maze)
 
 void MazeWidget::generateMazeWorker_error(QString err)
 {
-    qDebug() << "generateMazeWorker_error: " << err;
+    (void)err;
+    //qDebug() << "generateMazeWorker_error: " << err;
 }
 
 void MazeWidget::deleteMazeWorker_finished(void *maze)
@@ -694,7 +695,8 @@ void MazeWidget::deleteMazeWorker_finished(void *maze)
 
 void MazeWidget::deleteMazeWorker_error(QString err)
 {
-    qDebug() << "deleteMazeWorker_error: " << err;
+    (void)err;
+    //qDebug() << "deleteMazeWorker_error: " << err;
 }
 
 void MazeWidget::openMazeWorker_deletingOldMaze()
@@ -726,10 +728,21 @@ void MazeWidget::openMazeWorker_finished(void *maze)
     emit on_mazeCreated();
 }
 
-void MazeWidget::openMazeWorker_error(QString err)
+void MazeWidget::openMazeWorker_error(void *maze, QString err)
 {
+    // Avoid displaying the busy cursor when displaying the error message
     emit on_openMazeError(err);
+
+    // Restore the old maze, since the new one couldn't be loaded
+    creatingMaze = false;
+    solutionLength = ((MazeRef)maze)->solutionLength;
+    myMaze = (MazeRef)maze;
+    resetWidgetSize();
+    update();
+
+    // Display the error message, and re-enable the menus
     QMessageBox::warning(this, "Error Opening Maze", err);
+    emit on_openMazePostError();
 }
 
 void MazeWidget::saveMazeWorker_savingMaze()

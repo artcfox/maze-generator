@@ -2,7 +2,7 @@
  *  mazewidget.h
  *  MazeGenerator
  *
- *  Copyright 2018 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2018-2024 Matthew T. Pandina. All rights reserved.
  *
  */
 
@@ -97,6 +97,7 @@ signals:
     void on_generatingMaze();
     void on_solvingMaze();
     void on_mazeCreated();
+    void on_openMazePostError();
 
     void on_openMaze();
     void on_openMazeError(QString err);
@@ -120,7 +121,7 @@ public slots:
     void openMazeWorker_allocatingMemory();
     void openMazeWorker_loadingMaze(int width, int height);
     void openMazeWorker_finished(void *maze);
-    void openMazeWorker_error(QString err);
+    void openMazeWorker_error(void* maze, QString err);
 
     void saveMazeWorker_savingMaze();
     void saveMazeWorker_finished();

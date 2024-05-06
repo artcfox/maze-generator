@@ -2,7 +2,7 @@
  *  openmazeworker.h
  *  MazeGenerator
  *
- *  Copyright 2018 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2018-2024 Matthew T. Pandina. All rights reserved.
  *
  */
 
@@ -31,34 +31,37 @@ signals:
     void openMazeWorker_allocatingMemory();
     void openMazeWorker_loadingMaze(int width, int height);
     void openMazeWorker_finished(void *myMaze);
-    void openMazeWorker_error(QString err);
+    void openMazeWorker_error(void *myMaze, QString err);
 
 public slots:
     void process() {
         QFile file(fileName);
         if (!file.open(QIODevice::ReadOnly)) {
-            emit openMazeWorker_error(QString("The file '%1' could not be opened.").arg(fileName));
+            emit openMazeWorker_error((void*)myMaze, QString("The file '%1' could not be opened.").arg(fileName));
             return;
         }
         uchar *memory = file.map(0, file.size());
         if (!memory) {
-            emit openMazeWorker_error(QString("The file '%1' could not be mapped to memory.").arg(fileName));
+            emit openMazeWorker_error((void*)myMaze, QString("The file '%1' could not be mapped to memory.").arg(fileName));
             return;
         }
         if (file.size() < (qint64)sizeof(uint32_t)) {
-            emit openMazeWorker_error(QString("The file '%1' is not valid.").arg(fileName));
+            file.unmap(memory);
+            emit openMazeWorker_error((void*)myMaze, QString("The file '%1' is not valid.").arg(fileName));
             return;
         }
 
         uint32_t dims_length = qFromLittleEndian<uint32_t>(memory);
 
         if (dims_length != 2) {
-            emit openMazeWorker_error(QString("Cannot load a maze with %2 dimensions.").arg(dims_length));
+            file.unmap(memory);
+            emit openMazeWorker_error((void*)myMaze, QString("Cannot load a maze with %2 dimensions.").arg(dims_length));
             return;
         }
 
         if (file.size() < (qint64)sizeof(uint32_t) * (dims_length + 1)) {
-            emit openMazeWorker_error(QString("The file '%1' is not valid.").arg(fileName));
+            file.unmap(memory);
+            emit openMazeWorker_error((void*)myMaze, QString("The file '%1' is not valid.").arg(fileName));
             return;
         }
 
@@ -84,7 +87,9 @@ public slots:
         baMaze.data_length = baSolution.data_length = totalWalls / 8 + ((totalWalls % 8) ? 1 : 0);
 
         if (file.size() < (qint64)sizeof(uint32_t) * (dims_length + 2) + baMaze.data_length + baSolution.data_length) {
-            emit openMazeWorker_error(QString("The file '%1' is not valid.").arg(fileName));
+            delete [] dims;
+            file.unmap(memory);
+            emit openMazeWorker_error((void*)myMaze, QString("The file '%1' is not valid.").arg(fileName));
             return;
         }
 

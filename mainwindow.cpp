@@ -2,7 +2,7 @@
  *  mainwindow.cpp
  *  MazeGenerator
  *
- *  Copyright 2018 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2018-2024 Matthew T. Pandina. All rights reserved.
  *
  */
 
@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(mazeWidget, &MazeWidget::openMazeWorker_start, this, &MainWindow::openMazeWorker_start);
     connect(mazeWidget, &MazeWidget::on_openMaze, this, &MainWindow::on_openMaze);
     connect(mazeWidget, &MazeWidget::on_openMazeError, this, &MainWindow::on_openMazeError);
+    connect(mazeWidget, &MazeWidget::on_openMazePostError, this, &MainWindow::enableMenuItemsAndRefreshStatusBar);
     connect(mazeWidget, &MazeWidget::saveMazeWorker_start, this, &MainWindow::saveMazeWorker_start);
     connect(mazeWidget, &MazeWidget::on_savingMaze, this, &MainWindow::on_savingMaze);
     connect(mazeWidget, &MazeWidget::on_saveMazeError, this, &MainWindow::on_saveMazeError);
@@ -169,7 +170,8 @@ void MainWindow::on_action_About_triggered()
 
 void MainWindow::aboutDialogFinished(int result)
 {
-    qDebug() << "About finished: " << result;
+    (void)result;
+    //qDebug() << "About finished: " << result;
     delete about;
 }
 
@@ -200,15 +202,20 @@ void MainWindow::on_solvingMaze()
 void MainWindow::on_mazeCreated()
 {
     QApplication::restoreOverrideCursor();
+    enableMenuItemsAndRefreshStatusBar();
+}
+
+void MainWindow::enableMenuItemsAndRefreshStatusBar()
+{
     enableMenuItems(true);
     int w = mazeWidget->getMazeWidth();
     int h = mazeWidget->getMazeHeight();
     int s = mazeWidget->getSolutionLength();
     permanentStatus.setText(QString("<b>Size: %1x%2, Cells: %3, Walls: %4, Solution Length: %5</b>")
-                     .arg(w)
-                     .arg(h)
-                     .arg(w * h)
-                     .arg(((w - 1) * h + w * (h - 1)) - (w * h - 1))
+                            .arg(w)
+                            .arg(h)
+                            .arg(w * h)
+                            .arg(((w - 1) * h + w * (h - 1)) - (w * h - 1))
                             .arg(s));
 }
 
@@ -219,13 +226,8 @@ void MainWindow::on_openMaze()
 
 void MainWindow::on_openMazeError(QString err)
 {
-    QApplication::restoreOverrideCursor();
-    enableMenuItems(true);
-    ui->action_Save_Maze_As->setDisabled(true);
-    ui->actionExport_Image->setDisabled(true);
-    ui->action_Print->setDisabled(true);
     (void)err; // silence unused warning
-    permanentStatus.setText("");
+    QApplication::restoreOverrideCursor();
 }
 
 void MainWindow::on_savingMaze()
@@ -235,9 +237,9 @@ void MainWindow::on_savingMaze()
 
 void MainWindow::on_saveMazeError(QString err)
 {
+    (void)err; // silence unused warning
     QApplication::restoreOverrideCursor();
     enableMenuItems(true);
-    (void)err; // silence unused warning
     permanentStatus.setText(previousStatus);
 }
 

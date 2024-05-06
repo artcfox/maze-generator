@@ -2,7 +2,7 @@
  *  mainwindow.h
  *  MazeGenerator
  *
- *  Copyright 2018 Matthew T. Pandina. All rights reserved.
+ *  Copyright 2018-2024 Matthew T. Pandina. All rights reserved.
  *
  */
 
@@ -57,6 +57,7 @@ private slots:
     void on_generatingMaze();
     void on_solvingMaze();
     void on_mazeCreated();
+    void enableMenuItemsAndRefreshStatusBar();
 
     void on_openMaze();
     void on_openMazeError(QString err);
