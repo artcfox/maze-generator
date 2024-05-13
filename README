@@ -15,23 +15,33 @@ the current zoom level, print them out on paper, or to a PDF file.
 *This GUI only allows 2D mazes to be visualized.
 
 Live Online Demo (compiled using Qt 6.7.0 for WebAssembly)
-https://artcfox.github.io/maze-generator/
 
-To build the Qt 6 version (for Desktop or Web Assembly), download and use
-the Qt 6.7.0 Online Installer.
+  https://artcfox.github.io/maze-generator/
 
-To build (qt5 branch) under Debian GNU/Linux:
 
-sudo apt-get update
-sudo apt-get install build-essential qtcreator qtbase5-dev
-git clone https://github.com/artcfox/maze-generator
-cd maze-generator
-qtcreator MazeGenerator.pro
+Generic Build Instructions
 
-Set the build type to 'Release' and build it.
+  To build the Qt 6 version (for Desktop or Web Assembly), you can
+  download and use the Qt 6.7.0 Online Installer.
 
-(If building on a system which does not support pthreads, you can
-rename Maze.c to Maze.cpp from within Qt Creator, and its threading
-implementation will automatically switch from pthreads to
-std::thread.)
+Debian 12
 
+  Qt6 Build Instructions
+
+    sudo apt install build-essential qt6-base-dev
+    git clone https://github.com/artcfox/maze-generator
+    cd maze-generator
+    qmake6 MazeGenerator.pro
+    make
+
+  Qt5 Build Instructions
+
+    sudo apt install build-essential qtbase5-dev
+    git clone https://github.com/artcfox/maze-generator
+    cd maze-generator
+    qmake MazeGenerator.pro
+    make
+
+Note: If building on a system which does not support pthreads, you can
+      rename Maze.c to Maze.cpp, and its threading implementation will
+      automatically switch from pthreads to std::thread.
