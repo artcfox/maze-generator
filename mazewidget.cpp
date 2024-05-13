@@ -624,18 +624,20 @@ void MazeWidget::paintEvent(QPaintEvent *event)
         painter.setBrush(brush);
         painter.drawRect(scaleRect(event->rect()));
     } else {
-        for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++) {
-            if (showMaze) {
-                if (inverse)
+        if (showMaze) {
+            if (inverse)
+                for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++)
                     paintMazePaths(&painter, scaleRect(*i));
-                else
+            else
+                for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++)
                     paintMazeWalls(&painter, scaleRect(*i));
-            }
-            if (showSolution)
-                paintSolution(&painter, scaleRect(*i));
-            if (debug)
-                paintDebug(&painter, scaleRect(*i));
         }
+        if (showSolution)
+            for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++)
+                paintSolution(&painter, scaleRect(*i));
+        if (debug)
+            for(QRegion::const_iterator i = event->region().begin(); i != event->region().end(); i++)
+                paintDebug(&painter, scaleRect(*i));
     }
 
     painter.end();
